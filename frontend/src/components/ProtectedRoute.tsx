@@ -1,19 +1,25 @@
-import {Navigate, useLocation} from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { ReactNode } from 'react';
 
-const ProtectedRoute = ({children, adminOnly = false}) => {
+interface ProtectedRouteProps {
+    children: ReactNode;
+    adminOnly?: boolean;
+}
+
+const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
     const isAuthenticated = sessionStorage.getItem('isAuthenticated');
     const isAdmin = sessionStorage.getItem('isAdmin');
     const location = useLocation();
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" state={{from: location}}/>;
+        return <Navigate to="/login" state={{ from: location }} />;
     }
 
     if (adminOnly && !isAdmin) {
-        return <Navigate to="/"/>;
+        return <Navigate to="/" />;
     }
 
-    return children;
+    return <>{children}</>;
 };
 
 export default ProtectedRoute;

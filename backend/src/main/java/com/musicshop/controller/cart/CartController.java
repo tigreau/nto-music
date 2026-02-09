@@ -20,7 +20,8 @@ public class CartController {
     }
 
     @PostMapping("/{userId}/products/{productId}")
-    public ResponseEntity<?> addProductToCart(@PathVariable Long userId, @PathVariable Long productId, @RequestParam int quantity) {
+    public ResponseEntity<?> addProductToCart(@PathVariable Long userId, @PathVariable Long productId,
+            @RequestParam int quantity) {
         try {
             CartDetail cartDetail = cartService.addProductToCart(userId, productId, quantity);
             return ResponseEntity.ok().body("Product added to cart");
@@ -59,6 +60,12 @@ public class CartController {
     @DeleteMapping("/details/{detailId}")
     public ResponseEntity<?> deleteCartDetail(@PathVariable Long detailId) {
         cartService.deleteCartDetail(detailId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{cartId}/clear")
+    public ResponseEntity<?> clearCart(@PathVariable Long cartId) {
+        cartService.clearCart(cartId);
         return ResponseEntity.ok().build();
     }
 }

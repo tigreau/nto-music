@@ -1,0 +1,23 @@
+# Git and IDE
+.git
+.idea
+*.iml
+.DS_Store
+
+# Frontend – don’t copy these into the frontend build stage
+frontend/node_modules
+frontend/dist
+frontend/.env*
+frontend/*.log
+
+# Backend – backend has its own Dockerfile and context
+backend/target
+backend/.mvn
+backend/mvnw
+backend/mvnw.cmd
+
+# Misc
+node_modules
+dist
+*.md
+context.txt

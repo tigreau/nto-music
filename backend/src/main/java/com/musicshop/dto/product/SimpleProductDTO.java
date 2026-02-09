@@ -11,6 +11,8 @@ public class SimpleProductDTO {
     protected String name;
     @JsonProperty("price")
     protected BigDecimal price;
+    @JsonProperty("categoryName")
+    protected String categoryName;
 
     // Private constructor to prevent instantiation without builder
     protected SimpleProductDTO() {
@@ -21,6 +23,7 @@ public class SimpleProductDTO {
         protected Long id;
         protected String name;
         protected BigDecimal price;
+        protected String categoryName;
 
         public Builder() {
         }
@@ -40,11 +43,17 @@ public class SimpleProductDTO {
             return this;
         }
 
+        public Builder categoryName(String categoryName) {
+            this.categoryName = categoryName;
+            return this;
+        }
+
         public SimpleProductDTO build() {
             SimpleProductDTO dto = new SimpleProductDTO();
             dto.id = this.id;
             dto.name = this.name;
             dto.price = this.price;
+            dto.categoryName = this.categoryName;
             return dto;
         }
     }

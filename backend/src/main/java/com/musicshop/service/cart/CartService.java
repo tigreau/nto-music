@@ -24,7 +24,8 @@ public class CartService {
     private final UserRepository userRepository;
 
     @Autowired
-    public CartService(CartRepository cartRepository, CartDetailRepository cartDetailRepository, ProductRepository productRepository, UserRepository userRepository) {
+    public CartService(CartRepository cartRepository, CartDetailRepository cartDetailRepository,
+            ProductRepository productRepository, UserRepository userRepository) {
         this.cartRepository = cartRepository;
         this.cartDetailRepository = cartDetailRepository;
         this.productRepository = productRepository;
@@ -42,7 +43,8 @@ public class CartService {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         Cart cart = cartRepository.findByUser(user).orElseGet(() -> createNewCart(user));
 
-        Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (quantity > product.getQuantityAvailable()) {
             throw new RuntimeException("Not enough quantity available");
@@ -80,7 +82,23 @@ public class CartService {
     }
 
     public void deleteCartDetail(Long detailId) {
-        cartDetailRepository.deleteById(detailId);
+        CartDetail detail = cartDetailRepository.findById(detailId)
+                .orElseThrow(() -> new RuntimeException("Cart detail not found"));
+
+        Product product = detail.getProduct();
+        product.setQuantityAvailable(product.getQuantityAvailable() + detail.getQuantity());
+        productRepository.save(product);
+
+        cartDetailRepository.delete(detail);
+    }
+
+    public void clearCart(Long cartId) {
+        List<CartDetail> details = listCartDetails(cartId);
+        for (CartDetail detail : details) {
+            Product product = detail.getProduct();
+            product.setQuantityAvailable(product.getQuantityAvailable() + detail.getQuantity());
+            productRepository.save(product);
+        }
+        cartDetailRepository.deleteAll(details);
     }
 }
-

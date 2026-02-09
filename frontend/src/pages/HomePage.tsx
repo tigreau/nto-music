@@ -1,23 +1,33 @@
-import {useState, useEffect} from 'react';
-import ProductList from '../components/ProductList';
-import ProductModal from "../components/ProductModal.tsx";
+import { useState, useEffect } from 'react';
+import { useCart } from "@/context/CartContext";
+import { Hero } from '@/components/Hero';
+import { FeaturedProducts } from '@/components/FeaturedProducts';
+import ProductModal from "@/components/ProductModal";
+import { useSearchParams } from 'react-router-dom';
 
-const HomePage = ({isAdmin}) => {
-    const [products, setProducts] = useState([]);
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [detailedProduct, setDetailedProduct] = useState(null);
+interface Product {
+    id: number;
+    name: string;
+    price: number;
+    description?: string;
+    quantityAvailable?: number;
+    categoryName?: string;
+}
 
-    useEffect(() => {
-        // Will use the SimpleProductDTO to show just the name and price of a product
-        fetch('/api/products')
-            .then(response => response.json())
-            .then(data => setProducts(data))
-            .catch(error => console.error('Error fetching products:', error));
-    }, []);
+interface HomePageProps {
+    isAdmin: boolean;
+}
 
-    const handleProductClick = (product) => {
+const HomePage = ({ isAdmin }: HomePageProps) => {
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [detailedProduct, setDetailedProduct] = useState<Product | null>(null);
+    const { refreshCart } = useCart();
+    const [searchParams] = useSearchParams();
+    const categoryFilter = searchParams.get('category');
+
+    const handleProductClick = (product: Product) => {
         setSelectedProduct(product);
-        // Will use the DetailedProductDTO to show all the details of a product
+        // Fetch detailed product info
         fetch(`/api/products/${product.id}`)
             .then(response => response.json())
             .then(data => setDetailedProduct(data))
@@ -29,11 +39,39 @@ const HomePage = ({isAdmin}) => {
         setDetailedProduct(null);
     };
 
+    const handleAddToCart = (productId: number, quantity: number) => {
+        fetch(`/api/carts/1/products/${productId}?quantity=${quantity}`, {
+            method: 'POST'
+        })
+            .then(response => {
+                if (response.ok) {
+                    alert(`Added ${quantity} item(s) to the cart.`);
+                    refreshCart();
+                } else {
+                    alert('Failed to add items to the cart.');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding items to the cart:', error);
+            });
+    };
+
     return (
         <div>
-            <h1>Welcome to the Music Shop!</h1>
-            <ProductList products={products} onProductClick={handleProductClick} isAdmin={isAdmin}/>
-            {selectedProduct && detailedProduct && <ProductModal product={detailedProduct} onClose={handleCloseModal}/>}
+            <Hero />
+            <FeaturedProducts
+                onAddToCart={handleAddToCart}
+                onProductClick={handleProductClick}
+                isAdmin={isAdmin}
+                categoryFilter={categoryFilter}
+            />
+            {selectedProduct && detailedProduct && (
+                <ProductModal
+                    product={detailedProduct}
+                    onClose={handleCloseModal}
+                    onAddToCart={!isAdmin ? handleAddToCart : undefined}
+                />
+            )}
         </div>
     );
 };

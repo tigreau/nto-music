@@ -1,0 +1,293 @@
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ShoppingCart, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+interface Product {
+  id: number
+  name: string
+  price: number
+  description?: string
+  quantityAvailable?: number
+  categoryName?: string
+}
+
+interface FeaturedProductsProps {
+  onAddToCart?: (productId: number, quantity: number) => void
+  onProductClick?: (product: Product) => void
+  isAdmin?: boolean
+  categoryFilter?: string | null
+}
+
+const ITEMS_PER_PAGE = 12
+
+export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categoryFilter }: FeaturedProductsProps) {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState("Recommended")
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    fetchProducts()
+    setCurrentPage(1)
+  }, [categoryFilter])
+
+  const fetchProducts = () => {
+    setLoading(true)
+    fetch('/api/products')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch products')
+        }
+        return response.json()
+      })
+      .then(data => {
+        setProducts(data)
+        setError(null)
+      })
+      .catch(error => {
+        console.error('Error fetching products:', error)
+        setError('Failed to load products. Please try again later.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
+  // Filter products by category if filter is applied
+  const filteredProducts = categoryFilter
+    ? products.filter(p => p.categoryName && p.categoryName.toLowerCase() === categoryFilter.toLowerCase())
+    : products
+
+  // Sort products based on selected option
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case "Price: Low to High":
+        return a.price - b.price
+      case "Price: High to Low":
+        return b.price - a.price
+      case "Newest":
+        return b.id - a.id // Assuming higher ID = newer
+      default:
+        return 0 // Recommended - keep original order
+    }
+  })
+
+  const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE)
+  const startItem = (currentPage - 1) * ITEMS_PER_PAGE
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)
+  const paginatedProducts = sortedProducts.slice(startItem, endItem)
+
+  const sortOptions = ["Recommended", "Price: Low to High", "Price: High to Low", "Newest"]
+
+  const handleAddToCart = (e: React.MouseEvent, productId: number) => {
+    e.stopPropagation()
+    if (onAddToCart) {
+      const quantity = parseInt(prompt('Enter quantity:', '1') || '0', 10)
+      if (!isNaN(quantity) && quantity > 0) {
+        onAddToCart(productId, quantity)
+      }
+    }
+  }
+
+  const handleProductClick = (product: Product) => {
+    if (onProductClick) {
+      onProductClick(product)
+    }
+  }
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages)
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages)
+      }
+    }
+    return pages
+  }
+
+  if (loading) {
+    return (
+      <section className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading products...</span>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={fetchProducts}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="py-4">
+      <div className="container mx-auto px-4">
+        {/* Header with count and sort */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-lg font-semibold text-foreground">
+              {categoryFilter ? `${categoryFilter}` : "Products"}
+            </h1>
+            <span className="text-sm text-muted-foreground">{filteredProducts.length} products</span>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="bg-transparent">
+                Sort: {sortBy}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {sortOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  onClick={() => {
+                    setSortBy(option)
+                    setCurrentPage(1) // Reset to first page when sorting changes
+                  }}
+                  className={sortBy === option ? "bg-muted" : ""}
+                >
+                  {option}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Product Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {paginatedProducts.map((product) => (
+            <div
+              key={product.id}
+              className="bg-card rounded-xl border border-border p-4 hover:shadow-lg transition-all duration-300 group cursor-pointer"
+              onClick={() => handleProductClick(product)}
+            >
+              {/* Image Placeholder */}
+              <div className="aspect-square bg-muted/50 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="text-4xl">🎵</span>
+                {product.categoryName && (
+                  <Badge className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm text-foreground hover:bg-background/90">
+                    {product.categoryName}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Content */}
+              <div>
+                <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                  {product.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                  {product.description || 'No description available'}
+                </p>
+
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="font-bold text-lg text-primary">
+                    {product.price ? `${product.price.toFixed(2)} EUR` : 'Price on request'}
+                  </span>
+                  {!isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleAddToCart(e, product.id)}
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {products.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground">No products available.</p>
+          </div>
+        ) : (
+          <>
+
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground">
+                  {startItem + 1}-{endItem} of {filteredProducts.length} products
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-8 h-8 bg-transparent"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  {getPageNumbers().map((page, index) => (
+                    typeof page === 'number' ? (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded text-sm font-medium transition-colors ${page === currentPage
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted text-foreground"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ) : (
+                      <span key={index} className="w-8 h-8 flex items-center justify-center text-muted-foreground">
+                        {page}
+                      </span>
+                    )
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-8 h-8 bg-transparent"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  )
+}

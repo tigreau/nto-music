@@ -1,0 +1,2719 @@
+# File: backend/src/main/java/com/musicshop/MusicShopApplication.java
+package com.musicshop;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class MusicShopApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MusicShopApplication.class, args);
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/config/CorsConfig.java
+//package com.musicshop.config;
+//
+//import org.springframework.context.annotation.Bean;
+//import org.springframework.context.annotation.Configuration;
+//import org.springframework.web.servlet.config.annotation.CorsRegistry;
+//import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+//
+//@Configuration
+//public class CorsConfig {
+//
+//    @Bean
+//    public WebMvcConfigurer corsConfigurer() {
+//        return new WebMvcConfigurer() {
+//            @Override
+//            public void addCorsMappings(CorsRegistry registry) {
+//                registry.addMapping("/api/**")
+//                        .allowedOrigins("http://localhost:5173") // Specify the exact origin
+//                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+//                        .allowedHeaders("*")
+//                        .allowCredentials(true); // Allow credentials
+//            }
+//        };
+//    }
+//}
+
+# File: backend/src/main/java/com/musicshop/config/DataLoader.java
+package com.musicshop.config;
+
+import org.springframework.boot.CommandLineRunner;
+
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.musicshop.model.category.Category;
+import com.musicshop.model.user.User;
+import com.musicshop.model.product.Product;
+import com.musicshop.model.cart.Cart;
+import com.musicshop.repository.category.CategoryRepository;
+import com.musicshop.repository.user.UserRepository;
+import com.musicshop.repository.product.ProductRepository;
+import com.musicshop.repository.cart.CartRepository;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Component
+public class DataLoader implements CommandLineRunner {
+
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Override
+    public void run(String... args) throws Exception {
+        // This will be the only user for now
+        User user = new User();
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("john.doe@example.com");
+        user.setPhoneNumber("1234567890");
+        User savedUser = userRepository.save(user);
+
+        // Create and save categories
+        Category instruments = new Category();
+        instruments.setCategoryName("Instruments");
+        categoryRepository.save(instruments);
+
+        Category guitars = new Category();
+        guitars.setCategoryName("Guitars");
+        guitars.setParentCategory(instruments);
+        categoryRepository.save(guitars);
+
+        // Create and save products
+        Product product1 = new Product();
+        product1.setName("Martin LX1E");
+        product1.setDescription("Portable and sounds great");
+        product1.setPrice(new BigDecimal("550.99"));
+        product1.setQuantityAvailable(10);
+        product1.setCategory(guitars);
+        productRepository.save(product1);
+
+        Product product2 = new Product();
+        product2.setName("Fender Player Stratocaster");
+        product2.setDescription("Classic sound and look");
+        product2.setPrice(new BigDecimal("649.99"));
+        product2.setQuantityAvailable(8);
+        product2.setCategory(guitars);
+        productRepository.save(product2);
+
+        // Create a cart for the user
+        Cart cart = new Cart();
+        cart.setUser(savedUser); // Associate the cart with the user
+        cart.setDateCreated(LocalDateTime.now());
+        cartRepository.save(cart);
+
+    }
+}
+# File: backend/src/main/java/com/musicshop/controller/address/AddressController.java
+package com.musicshop.controller.address;
+
+public class AddressController {
+    // TODO
+}
+
+# File: backend/src/main/java/com/musicshop/controller/cart/CartController.java
+package com.musicshop.controller.cart;
+
+import com.musicshop.model.cart.CartDetail;
+import com.musicshop.service.cart.CartService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("api/carts")
+public class CartController {
+
+    private final CartService cartService;
+
+    @Autowired
+    public CartController(CartService cartService) {
+        this.cartService = cartService;
+    }
+
+    @PostMapping("/{userId}/products/{productId}")
+    public ResponseEntity<?> addProductToCart(@PathVariable Long userId, @PathVariable Long productId, @RequestParam int quantity) {
+        try {
+            CartDetail cartDetail = cartService.addProductToCart(userId, productId, quantity);
+            return ResponseEntity.ok().body("Product added to cart");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{cartId}/products/{productId}")
+    public ResponseEntity<CartDetail> getCartDetail(@PathVariable Long cartId, @PathVariable Long productId) {
+        return cartService.getCartDetail(cartId, productId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{cartId}/details")
+    public ResponseEntity<List<CartDetail>> listCartDetails(@PathVariable Long cartId) {
+        try {
+            List<CartDetail> cartDetails = cartService.listCartDetails(cartId);
+            return ResponseEntity.ok(cartDetails);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/details/{detailId}")
+    public ResponseEntity<CartDetail> updateCartDetail(@PathVariable Long detailId, @RequestParam int newQuantity) {
+        try {
+            CartDetail updatedCartDetail = cartService.updateCartDetail(detailId, newQuantity);
+            return ResponseEntity.ok(updatedCartDetail);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @DeleteMapping("/details/{detailId}")
+    public ResponseEntity<?> deleteCartDetail(@PathVariable Long detailId) {
+        cartService.deleteCartDetail(detailId);
+        return ResponseEntity.ok().build();
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/controller/category/CategoryController.java
+package com.musicshop.controller.category;
+
+public class CategoryController {
+    // TODO
+}
+
+# File: backend/src/main/java/com/musicshop/controller/order/OrderController.java
+package com.musicshop.controller.order;
+
+public class OrderController {
+    // TODO
+}
+
+# File: backend/src/main/java/com/musicshop/controller/payment/PaymentController.java
+package com.musicshop.controller.payment;
+
+public class PaymentController {
+    // TODO
+}
+
+# File: backend/src/main/java/com/musicshop/controller/product/ProductController.java
+package com.musicshop.controller.product;
+
+import com.musicshop.dto.product.DetailedProductDTO;
+import com.musicshop.dto.product.SimpleProductDTO;
+import com.musicshop.dto.product.ProductDTOFactory;
+import com.musicshop.model.product.Product;
+import com.musicshop.service.product.ProductService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.xml.bind.ValidationException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+//@CrossOrigin(origins = "http://localhost:5173")
+@RequestMapping("/api/products")
+public class ProductController {
+
+    private final ProductService productService;
+
+    @Autowired
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
+
+    @GetMapping
+    public List<SimpleProductDTO> listAllProducts() {
+        // When I list the products I will use their simple representation
+        return productService.listAllProducts().stream().map(ProductDTOFactory::createSimpleProductDTO).collect(Collectors.toList());
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createProduct(@RequestBody Product product) {
+        // Used wildcard because response can have a Product or a String containing the error message
+        try {
+            Product newProduct = productService.createProduct(product);
+            return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
+        } catch (ValidationException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DetailedProductDTO> getProductById(@PathVariable Long id) {
+        // Here I use the more detailed DTO
+        return productService.getProductById(id).map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product))).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<DetailedProductDTO> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
+        // Here I use the more detailed DTO
+        return productService.updateProduct(id, productDetails).map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product))).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}")
+    // Used this for partial updates,
+    // because PUT expects a full replace and for partial fields it will make the other values null
+    public ResponseEntity<DetailedProductDTO> partialUpdateProduct(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        return productService.partialUpdateProduct(id, updates).map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product))).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        boolean exists = productService.getProductById(id).isPresent();
+        if (exists) {
+            productService.deleteProduct(id);
+            return ResponseEntity.ok().build();  // Return a successful response
+        } else {
+            return ResponseEntity.notFound().build();  // Return a 404 if the product does not exist
+        }
+    }
+
+    @PatchMapping("/{id}/apply-discount")
+    public ResponseEntity<?> applyDiscount(@PathVariable Long id, @RequestParam String discountType) {
+        return productService.applyDiscount(id, discountType)
+                .map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/controller/user/NotificationController.java
+package com.musicshop.controller.user;
+
+import com.musicshop.model.user.Notification;
+import com.musicshop.service.user.NotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/notifications")
+public class NotificationController {
+
+    private final NotificationService notificationService;
+
+    @Autowired
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Notification>> getNotificationsForUser(@PathVariable Long userId) {
+        List<Notification> notifications = notificationService.getNotificationsForUser(userId);
+        if (notifications.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(notifications);
+    }
+
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long notificationId) {
+        boolean isDeleted = notificationService.deleteNotification(notificationId);
+        if (!isDeleted) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok().build();
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/controller/user/UserController.java
+package com.musicshop.controller.user;
+
+import com.musicshop.model.user.User;
+import com.musicshop.service.user.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<User> getUser(@PathVariable Long userId) {
+        return userService.getUser(userId)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<User> updateUser(@PathVariable Long userId, @RequestBody User userDetails) {
+        User updatedUser = userService.updateUser(userId, userDetails);
+        return ResponseEntity.ok(updatedUser);
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/discount/DiscountStrategy.java
+package com.musicshop.discount;
+
+import com.musicshop.model.product.Product;
+
+import java.math.BigDecimal;
+
+public interface DiscountStrategy {
+    BigDecimal applyDiscount(Product product);
+}
+
+# File: backend/src/main/java/com/musicshop/discount/DiscountStrategyFactory.java
+package com.musicshop.discount;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class DiscountStrategyFactory {
+
+    private final FixedAmountDiscountStrategy fixedAmountDiscountStrategy;
+    private final PercentageDiscountStrategy percentageDiscountStrategy;
+
+    @Autowired
+    public DiscountStrategyFactory(FixedAmountDiscountStrategy fixedAmountDiscountStrategy,
+                                   PercentageDiscountStrategy percentageDiscountStrategy) {
+        this.fixedAmountDiscountStrategy = fixedAmountDiscountStrategy;
+        this.percentageDiscountStrategy = percentageDiscountStrategy;
+    }
+
+    public DiscountStrategy getDiscountStrategy(String type) {
+        if ("fixed".equalsIgnoreCase(type)) {
+            return fixedAmountDiscountStrategy;
+        } else if ("percentage".equalsIgnoreCase(type)) {
+            return percentageDiscountStrategy;
+        }
+        throw new IllegalArgumentException("Invalid discount type: " + type);
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/discount/FixedAmountDiscountStrategy.java
+package com.musicshop.discount;
+
+import com.musicshop.model.product.Product;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+
+@Component
+public class FixedAmountDiscountStrategy implements DiscountStrategy {
+    private final BigDecimal discountAmount;
+
+    public FixedAmountDiscountStrategy(@Value("${discount.fixedAmount}") BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    @Override
+    public BigDecimal applyDiscount(Product product) {
+        return product.getPrice().subtract(discountAmount).max(BigDecimal.ZERO);
+    }
+}
+# File: backend/src/main/java/com/musicshop/discount/PercentageDiscountStrategy.java
+package com.musicshop.discount;
+
+import com.musicshop.model.product.Product;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+@Component
+public class PercentageDiscountStrategy implements DiscountStrategy {
+    private final BigDecimal percent;
+
+    public PercentageDiscountStrategy(@Value("${discount.percentage}") double percent) {
+        this.percent = BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100));
+    }
+
+    @Override
+    public BigDecimal applyDiscount(Product product) {
+        BigDecimal price = product.getPrice();
+
+        // Apply discount to the entire price
+        BigDecimal discountedPrice = price.multiply(BigDecimal.ONE.subtract(percent));
+
+        // Round down to the nearest dollar and then add .99
+        BigDecimal finalPrice = discountedPrice.setScale(0, RoundingMode.DOWN).add(new BigDecimal("0.99"));
+
+        return finalPrice;
+    }
+}
+# File: backend/src/main/java/com/musicshop/dto/product/DetailedProductDTO.java
+package com.musicshop.dto.product;
+
+import java.math.BigDecimal;
+
+public class DetailedProductDTO {
+    private Long id;
+    private String name;
+    private String description;
+    private BigDecimal price;
+    private Integer quantityAvailable;
+    private String categoryName;
+
+    // Private constructor to prevent instantiation without builder
+    private DetailedProductDTO() {
+    }
+
+    // Here I am using getters instead of @JsonProperty("fieldName")
+    // at least one of the two is needed for JSON serialization
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+
+    public Integer getQuantityAvailable() {
+        return quantityAvailable;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    // Builder inner class
+    public static class Builder {
+        private Long id;
+        private String name;
+        private String description;
+        private BigDecimal price;
+        private String categoryName;
+        private Integer quantityAvailable;
+
+        public Builder() {
+        }
+
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder price(BigDecimal price) {
+            this.price = price;
+            return this;
+        }
+
+        public Builder quantityAvailable(Integer quantityAvailable) {
+            this.quantityAvailable = quantityAvailable;
+            return this;
+        }
+
+        public Builder categoryName(String categoryName) {
+            this.categoryName = categoryName;
+            return this;
+        }
+
+        public DetailedProductDTO build() {
+            DetailedProductDTO dto = new DetailedProductDTO();
+            dto.id = this.id;
+            dto.name = this.name;
+            dto.description = this.description;
+            dto.price = this.price;
+            dto.quantityAvailable = this.quantityAvailable;
+            dto.categoryName = this.categoryName;
+            return dto;
+        }
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/dto/product/ProductDTOFactory.java
+package com.musicshop.dto.product;
+
+import com.musicshop.dto.product.SimpleProductDTO;
+import com.musicshop.dto.product.DetailedProductDTO;
+import com.musicshop.model.product.Product;
+
+public class ProductDTOFactory {
+
+    public static SimpleProductDTO createSimpleProductDTO(Product product) {
+        return new SimpleProductDTO.Builder()
+                .id(product.getId())
+                .name(product.getName())
+                .price(product.getPrice())
+                .build();
+    }
+
+    public static DetailedProductDTO createDetailedProductDTO(Product product) {
+        return new DetailedProductDTO.Builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .quantityAvailable(product.getQuantityAvailable())
+                .categoryName(product.getCategory().getCategoryName())
+                .build();
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/dto/product/SimpleProductDTO.java
+package com.musicshop.dto.product;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.math.BigDecimal;
+
+public class SimpleProductDTO {
+    @JsonProperty("id")
+    protected Long id;
+    @JsonProperty("name")
+    protected String name;
+    @JsonProperty("price")
+    protected BigDecimal price;
+
+    // Private constructor to prevent instantiation without builder
+    protected SimpleProductDTO() {
+    }
+
+    // Builder inner class
+    public static class Builder {
+        protected Long id;
+        protected String name;
+        protected BigDecimal price;
+
+        public Builder() {
+        }
+
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder price(BigDecimal price) {
+            this.price = price;
+            return this;
+        }
+
+        public SimpleProductDTO build() {
+            SimpleProductDTO dto = new SimpleProductDTO();
+            dto.id = this.id;
+            dto.name = this.name;
+            dto.price = this.price;
+            return dto;
+        }
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/event/product/ProductDeletionEvent.java
+package com.musicshop.event.product;
+
+import com.musicshop.model.product.Product;
+import com.musicshop.model.cart.CartDetail;
+import org.springframework.context.ApplicationEvent;
+import java.util.List;
+
+public class ProductDeletionEvent extends ApplicationEvent {
+    private final Product deletedProduct;
+    private final List<CartDetail> affectedCartDetails;
+
+    public ProductDeletionEvent(Object source, Product deletedProduct, List<CartDetail> affectedCartDetails) {
+        super(source);
+        this.deletedProduct = deletedProduct;
+        this.affectedCartDetails = affectedCartDetails;
+    }
+
+    public Product getDeletedProduct() {
+        return deletedProduct;
+    }
+
+    public List<CartDetail> getAffectedCartDetails() {
+        return affectedCartDetails;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/event/product/ProductDiscountEvent.java
+package com.musicshop.event.product;
+
+import com.musicshop.model.product.Product;
+
+import java.math.BigDecimal;
+
+public class ProductDiscountEvent {
+
+    private final Product discountedProduct;
+    private final BigDecimal originalPrice;
+
+    public ProductDiscountEvent(Product discountedProduct, BigDecimal originalPrice) {
+        this.discountedProduct = discountedProduct;
+        this.originalPrice = originalPrice;
+    }
+
+    // Getters
+    public Product getDiscountedProduct() {
+        return discountedProduct;
+    }
+
+    public BigDecimal getOriginalPrice() {
+        return originalPrice;
+    }
+}
+
+
+# File: backend/src/main/java/com/musicshop/event/product/ProductUpdateEvent.java
+package com.musicshop.event.product;
+
+import com.musicshop.model.product.Product;
+import org.springframework.context.ApplicationEvent;
+
+public class ProductUpdateEvent extends ApplicationEvent {
+    private final Product updatedProduct;
+
+    public ProductUpdateEvent(Object source, Product updatedProduct) {
+        super(source);
+        this.updatedProduct = updatedProduct;
+    }
+
+    public Product getUpdatedProduct() {
+        return updatedProduct;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/event/product/ProductUpdateListener.java
+package com.musicshop.event.product;
+
+public interface ProductUpdateListener {
+    void onProductUpdate(ProductUpdateEvent event);
+}
+
+# File: backend/src/main/java/com/musicshop/model/BaseModel.java
+package com.musicshop.model;
+
+import javax.persistence.*;
+import java.io.Serializable;
+
+@MappedSuperclass
+public abstract class BaseModel<ID extends Serializable> {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private ID id;
+
+    public ID getId() {
+        return id;
+    }
+
+    public void setId(ID id) {
+        this.id = id;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/address/Address.java
+package com.musicshop.model.address;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.user.UserAddress;
+
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import java.util.Set;
+
+@Entity
+@Table(name = "addresses")
+public class Address extends BaseModel<Long> {
+    private String street;
+    private String number;
+    private String postalCode;
+    private String city;
+    private String country;
+
+    @OneToMany(mappedBy = "address")
+    private Set<UserAddress> userAddresses;
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getNumber() {
+        return number;
+    }
+
+    public void setNumber(String number) {
+        this.number = number;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public Set<UserAddress> getUserAddresses() {
+        return userAddresses;
+    }
+
+    public void setUserAddresses(Set<UserAddress> userAddresses) {
+        this.userAddresses = userAddresses;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/cart/Cart.java
+package com.musicshop.model.cart;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.user.User;
+
+import java.time.LocalDateTime;
+import javax.persistence.*;
+
+@Entity
+@Table(name = "carts")
+public class Cart extends BaseModel<Long> {
+
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    private LocalDateTime dateCreated;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public LocalDateTime getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(LocalDateTime dateCreated) {
+        this.dateCreated = dateCreated;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/cart/CartDetail.java
+package com.musicshop.model.cart;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.product.Product;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "cart_details")
+public class CartDetail extends BaseModel<Long> {
+
+    @ManyToOne
+    @JoinColumn(name = "cart_id")
+    private Cart cart;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    private int quantity;
+
+    public Cart getCart() {
+        return cart;
+    }
+
+    public void setCart(Cart cart) {
+        this.cart = cart;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/category/Category.java
+package com.musicshop.model.category;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.musicshop.model.BaseModel;
+
+import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "categories")
+public class Category extends BaseModel<Long> {
+
+    @ManyToOne
+    @JoinColumn(name = "ParentCategoryID")
+    @JsonBackReference
+    private Category parentCategory;
+
+    @OneToMany(mappedBy = "parentCategory")
+    @JsonManagedReference
+    private Set<Category> subCategories = new HashSet<>();
+
+
+    private String categoryName;
+
+    public Category getParentCategory() {
+        return parentCategory;
+    }
+
+    public void setParentCategory(Category parentCategory) {
+        this.parentCategory = parentCategory;
+    }
+
+    public Set<Category> getSubCategories() {
+        return subCategories;
+    }
+
+    public void setSubCategories(Set<Category> subCategories) {
+        this.subCategories = subCategories;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+}
+# File: backend/src/main/java/com/musicshop/model/order/OrderDetail.java
+package com.musicshop.model.order;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.product.Product;
+
+import javax.persistence.Entity;
+import javax.persistence.ManyToOne;
+import javax.persistence.JoinColumn;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "order_details")
+public class OrderDetail extends BaseModel<Long> {
+    @ManyToOne
+    @JoinColumn(name = "order_id", referencedColumnName = "id")
+    private UserOrder order;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id", referencedColumnName = "id")
+    private Product product;
+
+    public UserOrder getOrder() {
+        return order;
+    }
+
+    public void setOrder(UserOrder order) {
+        this.order = order;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/order/UserOrder.java
+package com.musicshop.model.order;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.payment.Payment;
+import com.musicshop.model.user.User;
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+import java.util.Set;
+
+@Entity
+@Table(name = "user_orders")
+public class UserOrder extends BaseModel<Long> {
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
+
+    private LocalDateTime orderDate;
+
+    @OneToMany(mappedBy = "order")
+    private Set<OrderDetail> orderDetails;
+
+    @OneToMany(mappedBy = "order")
+    private Set<Payment> payments;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public LocalDateTime getOrderDate() {
+        return orderDate;
+    }
+
+    public void setOrderDate(LocalDateTime orderDate) {
+        this.orderDate = orderDate;
+    }
+
+    public Set<OrderDetail> getOrderDetails() {
+        return orderDetails;
+    }
+
+    public void setOrderDetails(Set<OrderDetail> orderDetails) {
+        this.orderDetails = orderDetails;
+    }
+
+    public Set<Payment> getPayments() {
+        return payments;
+    }
+
+    public void setPayments(Set<Payment> payments) {
+        this.payments = payments;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/payment/Payment.java
+package com.musicshop.model.payment;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.order.UserOrder;
+
+import javax.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "payments")
+public class Payment extends BaseModel<Long> {
+    @ManyToOne
+    @JoinColumn(name = "order_id", referencedColumnName = "id")
+    private UserOrder order;
+
+    private String paymentMethod;
+    private LocalDateTime paymentDate;
+    private BigDecimal amount;
+
+    public UserOrder getOrder() {
+        return order;
+    }
+
+    public void setOrder(UserOrder order) {
+        this.order = order;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public LocalDateTime getPaymentDate() {
+        return paymentDate;
+    }
+
+    public void setPaymentDate(LocalDateTime paymentDate) {
+        this.paymentDate = paymentDate;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/product/Product.java
+package com.musicshop.model.product;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.category.Category;
+import com.musicshop.model.product.Review;
+
+import javax.persistence.*;
+import java.math.BigDecimal;
+import java.util.Set;
+
+@Entity
+@Table(name = "products")
+public class Product extends BaseModel<Long> {
+
+    private String name;
+    private String description;
+    private BigDecimal price;
+    private int quantityAvailable;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    @OneToMany(mappedBy = "product")
+    private Set<Review> reviews;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public int getQuantityAvailable() {
+        return quantityAvailable;
+    }
+
+    public void setQuantityAvailable(int quantityAvailable) {
+        this.quantityAvailable = quantityAvailable;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public Set<Review> getReviews() {
+        return reviews;
+    }
+
+    public void setReviews(Set<Review> reviews) {
+        this.reviews = reviews;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/product/Review.java
+package com.musicshop.model.product;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.user.User;
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "reviews")
+public class Review extends BaseModel<Long> {
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    private int rating;
+    private String comment;
+    private LocalDateTime datePosted;
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public int getRating() {
+        return rating;
+    }
+
+    public void setRating(int rating) {
+        this.rating = rating;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public LocalDateTime getDatePosted() {
+        return datePosted;
+    }
+
+    public void setDatePosted(LocalDateTime datePosted) {
+        this.datePosted = datePosted;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/user/Notification.java
+package com.musicshop.model.user;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.musicshop.model.BaseModel;
+
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "notifications")
+public class Notification extends BaseModel<Long> {
+    private LocalDateTime timestamp;
+    private String message;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JsonIgnore
+    private User user;
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+}
+
+
+# File: backend/src/main/java/com/musicshop/model/user/User.java
+package com.musicshop.model.user;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.order.UserOrder;
+import com.musicshop.model.product.Review;
+
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import java.util.Set;
+
+@Entity
+@Table(name = "users")
+public class User extends BaseModel<Long> {
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phoneNumber;
+    private String password;
+
+    @OneToMany(mappedBy = "user")
+    private Set<UserAddress> userAddresses;
+
+    @OneToMany(mappedBy = "user")
+    private Set<UserOrder> orders;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Review> reviews;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Notification> notifications;
+
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Set<UserAddress> getUserAddresses() {
+        return userAddresses;
+    }
+
+    public void setUserAddresses(Set<UserAddress> userAddresses) {
+        this.userAddresses = userAddresses;
+    }
+
+    public Set<UserOrder> getOrders() {
+        return orders;
+    }
+
+    public void setOrders(Set<UserOrder> orders) {
+        this.orders = orders;
+    }
+
+    public Set<Review> getReviews() {
+        return reviews;
+    }
+
+    public void setReviews(Set<Review> reviews) {
+        this.reviews = reviews;
+    }
+
+
+    public Set<Notification> getNotifications() {
+        return notifications;
+    }
+
+    public void setNotifications(Set<Notification> notifications) {
+        this.notifications = notifications;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/model/user/UserAddress.java
+package com.musicshop.model.user;
+
+import com.musicshop.model.BaseModel;
+import com.musicshop.model.address.Address;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "user_addresses")
+public class UserAddress extends BaseModel<Long> {
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "address_id")
+    private Address address;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Address getAddress() {
+        return address;
+    }
+
+    public void setAddress(Address address) {
+        this.address = address;
+    }
+}
+# File: backend/src/main/java/com/musicshop/model/user/UserRole.java
+package com.musicshop.model.user;
+
+public enum UserRole {
+    CUSTOMER, ADMIN
+}
+
+# File: backend/src/main/java/com/musicshop/repository/address/AddressRepository.java
+package com.musicshop.repository.address;
+
+import com.musicshop.model.address.Address;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AddressRepository extends JpaRepository<Address, Long> {
+    // Implement specific methods for Address
+}
+
+# File: backend/src/main/java/com/musicshop/repository/cart/CartDetailRepository.java
+package com.musicshop.repository.cart;
+
+import com.musicshop.model.cart.CartDetail;
+import com.musicshop.model.cart.Cart;
+import com.musicshop.model.product.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface CartDetailRepository extends JpaRepository<CartDetail, Long> {
+    Optional<CartDetail> findByCartAndProduct(Cart cart, Product product);
+    List<CartDetail> findByCart(Cart cart);
+    List<CartDetail> findByProductId(Long productId);
+}
+
+# File: backend/src/main/java/com/musicshop/repository/cart/CartRepository.java
+package com.musicshop.repository.cart;
+
+import com.musicshop.model.cart.Cart;
+import com.musicshop.model.user.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface CartRepository extends JpaRepository<Cart, Long> {
+    Optional<Cart> findByUser(User customer);
+}
+# File: backend/src/main/java/com/musicshop/repository/category/CategoryRepository.java
+package com.musicshop.repository.category;
+
+import com.musicshop.model.category.Category;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+    // Implement specific methods for Category
+}
+
+# File: backend/src/main/java/com/musicshop/repository/order/OrderDetailRepository.java
+package com.musicshop.repository.order;
+
+import com.musicshop.model.order.OrderDetail;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
+    // Implement specific methods for OrderDetail
+}
+
+# File: backend/src/main/java/com/musicshop/repository/order/OrderRepository.java
+package com.musicshop.repository.order;
+
+import com.musicshop.model.order.UserOrder;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface OrderRepository extends JpaRepository<UserOrder, Long> {
+    // Implement specific methods for Order
+}
+
+# File: backend/src/main/java/com/musicshop/repository/payment/PaymentRepository.java
+package com.musicshop.repository.payment;
+
+import com.musicshop.model.payment.Payment;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PaymentRepository extends JpaRepository<Payment, Long> {
+    // Implement specific methods for Payment
+}
+
+# File: backend/src/main/java/com/musicshop/repository/product/ProductRepository.java
+package com.musicshop.repository.product;
+
+import com.musicshop.model.product.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface ProductRepository extends JpaRepository<Product, Long> {
+    Optional<Product> findByName(String productName);
+
+    void deleteByName(String productName);
+}
+
+# File: backend/src/main/java/com/musicshop/repository/product/ReviewRepository.java
+package com.musicshop.repository.product;
+
+import com.musicshop.model.product.Review;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ReviewRepository extends JpaRepository<Review, Long> {
+    // Implement specific methods for Review
+}
+
+# File: backend/src/main/java/com/musicshop/repository/user/NotificationRepository.java
+package com.musicshop.repository.user;
+
+import com.musicshop.model.user.Notification;
+import com.musicshop.model.user.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
+    List<Notification> findByUser(User user);
+}
+
+
+
+# File: backend/src/main/java/com/musicshop/repository/user/UserAddressRepository.java
+package com.musicshop.repository.user;
+
+import com.musicshop.model.user.UserAddress;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserAddressRepository extends JpaRepository<UserAddress, Long> {
+    // Implement specific methods for UserAddress
+}
+# File: backend/src/main/java/com/musicshop/repository/user/UserRepository.java
+package com.musicshop.repository.user;
+
+import com.musicshop.model.user.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByEmail(String currentUsername);
+}
+
+# File: backend/src/main/java/com/musicshop/service/cart/CartService.java
+package com.musicshop.service.cart;
+
+import com.musicshop.model.cart.Cart;
+import com.musicshop.model.cart.CartDetail;
+import com.musicshop.model.product.Product;
+import com.musicshop.model.user.User;
+import com.musicshop.repository.cart.CartDetailRepository;
+import com.musicshop.repository.cart.CartRepository;
+import com.musicshop.repository.product.ProductRepository;
+import com.musicshop.repository.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class CartService {
+
+    private final CartRepository cartRepository;
+    private final CartDetailRepository cartDetailRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+
+    @Autowired
+    public CartService(CartRepository cartRepository, CartDetailRepository cartDetailRepository, ProductRepository productRepository, UserRepository userRepository) {
+        this.cartRepository = cartRepository;
+        this.cartDetailRepository = cartDetailRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
+    }
+
+    public Cart createNewCart(User user) {
+        Cart newCart = new Cart();
+        newCart.setUser(user);
+        newCart.setDateCreated(LocalDateTime.now());
+        return cartRepository.save(newCart);
+    }
+
+    public CartDetail addProductToCart(Long userId, Long productId, int quantity) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        Cart cart = cartRepository.findByUser(user).orElseGet(() -> createNewCart(user));
+
+        Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (quantity > product.getQuantityAvailable()) {
+            throw new RuntimeException("Not enough quantity available");
+        }
+
+        // Update product quantity
+        product.setQuantityAvailable(product.getQuantityAvailable() - quantity);
+        productRepository.save(product);
+
+        CartDetail cartDetail = new CartDetail();
+        cartDetail.setCart(cart);
+        cartDetail.setProduct(product);
+        cartDetail.setQuantity(quantity);
+        return cartDetailRepository.save(cartDetail);
+    }
+
+    public Optional<CartDetail> getCartDetail(Long cartId, Long productId) {
+        Cart cart = cartRepository.findById(cartId).orElseThrow();
+        Product product = productRepository.findById(productId).orElseThrow();
+        return cartDetailRepository.findByCartAndProduct(cart, product);
+    }
+
+    public List<CartDetail> listCartDetails(Long cartId) {
+        return cartRepository.findById(cartId).map(cart -> {
+            List<CartDetail> cartDetails = cartDetailRepository.findAll();
+            cartDetails.removeIf(detail -> !detail.getCart().getId().equals(cartId));
+            return cartDetails;
+        }).orElseThrow(() -> new RuntimeException("Cart not found"));
+    }
+
+    public CartDetail updateCartDetail(Long detailId, int newQuantity) {
+        CartDetail cartDetail = cartDetailRepository.findById(detailId).orElseThrow();
+        cartDetail.setQuantity(newQuantity);
+        return cartDetailRepository.save(cartDetail);
+    }
+
+    public void deleteCartDetail(Long detailId) {
+        cartDetailRepository.deleteById(detailId);
+    }
+}
+
+
+# File: backend/src/main/java/com/musicshop/service/product/ProductService.java
+package com.musicshop.service.product;
+
+import com.musicshop.discount.DiscountStrategy;
+import com.musicshop.discount.DiscountStrategyFactory;
+import com.musicshop.event.product.ProductDeletionEvent;
+import com.musicshop.event.product.ProductDiscountEvent;
+import com.musicshop.model.cart.CartDetail;
+import com.musicshop.model.product.Product;
+import com.musicshop.event.product.ProductUpdateEvent;
+import com.musicshop.repository.cart.CartDetailRepository;
+import com.musicshop.repository.category.CategoryRepository;
+import com.musicshop.repository.product.ProductRepository;
+import com.musicshop.validation.product.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+
+import javax.xml.bind.ValidationException;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+public class ProductService {
+
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final DiscountStrategyFactory discountStrategyFactory;
+    private final CartDetailRepository cartDetailRepository;
+
+    @Autowired
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
+                          ApplicationEventPublisher eventPublisher,
+                          DiscountStrategyFactory discountStrategyFactory,
+                          CartDetailRepository cartDetailRepository) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+        this.eventPublisher = eventPublisher;
+        this.discountStrategyFactory = discountStrategyFactory;
+        this.cartDetailRepository = cartDetailRepository;
+    }
+
+    public List<Product> listAllProducts() {
+        return productRepository.findAll();
+    }
+
+    public Product createProduct(Product product) throws ValidationException {
+        ProductValidator validator = new CategoryValidationDecorator(
+                new QuantityAvailableValidationDecorator(
+                        new DescriptionValidationDecorator(
+                                new PriceValidationDecorator(
+                                        new NameValidationDecorator(
+                                                new BasicProductValidator())))));
+        validator.validate(product);
+
+        // Handle category logic
+        product.setCategory(categoryRepository.findById(product.getCategory().getId()).orElseThrow(() -> new RuntimeException("Category not found")));
+
+        return productRepository.save(product);
+    }
+
+    public Optional<Product> getProductById(Long id) {
+        return productRepository.findById(id);
+    }
+
+    public Optional<Product> updateProduct(Long id, Product productDetails) {
+        return productRepository.findById(id).map(product -> {
+            product.setName(productDetails.getName());
+            product.setDescription(productDetails.getDescription());
+            product.setPrice(productDetails.getPrice());
+            product.setQuantityAvailable(productDetails.getQuantityAvailable());
+            product.setCategory(productDetails.getCategory());
+
+            Product updatedProduct = productRepository.save(product);
+            eventPublisher.publishEvent(new ProductUpdateEvent(this, updatedProduct));
+            return updatedProduct;
+        });
+    }
+
+    public Optional<Product> partialUpdateProduct(Long id, Map<String, Object> updates) {
+        return productRepository.findById(id).map(product -> {
+            applyPartialUpdates(product, updates);
+
+            Product updatedProduct = productRepository.save(product);
+            eventPublisher.publishEvent(new ProductUpdateEvent(this, updatedProduct));
+            return updatedProduct;
+        });
+    }
+
+    private void applyPartialUpdates(Product product, Map<String, Object> updates) {
+        if (updates.containsKey("name")) {
+            product.setName((String) updates.get("name"));
+        }
+        if (updates.containsKey("price")) {
+            product.setPrice(new BigDecimal(String.valueOf(updates.get("price"))));
+        }
+        // Will add similar conditions for other fields that can be updated
+        // and are in the updates map
+    }
+
+
+    public void deleteProduct(Long id) {
+        Optional<Product> productOpt = productRepository.findById(id);
+        if (productOpt.isPresent()) {
+            Product product = productOpt.get();
+            List<CartDetail> cartDetails = cartDetailRepository.findByProductId(id);
+            cartDetailRepository.deleteAll(cartDetails); // Delete cart details first
+            productRepository.delete(product); // Then delete the product
+            eventPublisher.publishEvent(new ProductDeletionEvent(this, product, cartDetails));
+        } else {
+            throw new RuntimeException("Product not found");
+        }
+    }
+
+
+    public Optional<Product> applyDiscount(Long productId, String discountType) {
+        return productRepository.findById(productId).map(product -> {
+            BigDecimal originalPrice = product.getPrice();
+            DiscountStrategy discountStrategy = discountStrategyFactory.getDiscountStrategy(discountType);
+            BigDecimal discountedPrice = discountStrategy.applyDiscount(product);
+            product.setPrice(discountedPrice);
+            Product savedProduct = productRepository.save(product);
+
+            // Publish the discount event
+            eventPublisher.publishEvent(new ProductDiscountEvent(savedProduct, originalPrice));
+
+            return savedProduct;
+        });
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/service/user/NotificationService.java
+package com.musicshop.service.user;
+
+import com.musicshop.event.product.ProductDeletionEvent;
+import com.musicshop.event.product.ProductDiscountEvent;
+import com.musicshop.model.product.Product;
+import com.musicshop.event.product.ProductUpdateEvent;
+import com.musicshop.model.cart.CartDetail;
+import com.musicshop.model.user.Notification;
+import com.musicshop.model.user.User;
+import com.musicshop.repository.cart.CartDetailRepository;
+import com.musicshop.repository.user.NotificationRepository;
+import com.musicshop.repository.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class NotificationService {
+
+    private final CartDetailRepository cartDetailRepository;
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+
+    @Autowired
+    public NotificationService(CartDetailRepository cartDetailRepository, NotificationRepository notificationRepository, UserRepository userRepository) {
+        this.cartDetailRepository = cartDetailRepository;
+        this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+    }
+
+    @EventListener
+    public void onProductUpdate(ProductUpdateEvent event) {
+        Product updatedProduct = event.getUpdatedProduct();
+        Long updatedProductId = updatedProduct.getId();
+
+        List<CartDetail> affectedCartDetails = cartDetailRepository.findByProductId(updatedProductId);
+
+        affectedCartDetails.forEach(cartDetail -> {
+            User affectedUser = cartDetail.getCart().getUser();
+            String message = String.format("Product updated in cart: %s, Price: %s", updatedProduct.getName(), updatedProduct.getPrice());
+            createNotification(affectedUser, message);
+        });
+    }
+
+    @EventListener
+    public void onProductDeletion(ProductDeletionEvent event) {
+        Product deletedProduct = event.getDeletedProduct();
+        List<CartDetail> affectedCartDetails = event.getAffectedCartDetails();
+
+        affectedCartDetails.forEach(cartDetail -> {
+            User affectedUser = cartDetail.getCart().getUser();
+            String message = "The product '" + deletedProduct.getName() + "' has been removed from your cart.";
+            createNotification(affectedUser, message);
+        });
+    }
+
+    @EventListener
+    public void onProductDiscount(ProductDiscountEvent event) {
+        Product discountedProduct = event.getDiscountedProduct();
+        BigDecimal originalPrice = event.getOriginalPrice();
+        Long discountedProductId = discountedProduct.getId();
+
+        List<CartDetail> affectedCartDetails = cartDetailRepository.findByProductId(discountedProductId);
+
+        affectedCartDetails.forEach(cartDetail -> {
+            User affectedUser = cartDetail.getCart().getUser();
+            String message = String.format("Price reduced for '%s' in your cart. Original Price: %s, New Price: %s", discountedProduct.getName(), originalPrice, discountedProduct.getPrice());
+            createNotification(affectedUser, message);
+        });
+    }
+
+
+    private void createNotification(User user, String message) {
+        Notification notification = new Notification();
+        notification.setTimestamp(LocalDateTime.now());
+        notification.setMessage(message);
+        notification.setUser(user);
+        notificationRepository.save(notification);
+    }
+
+    public List<Notification> getNotificationsForUser(Long userId) {
+        Optional<User> user = userRepository.findById(userId);
+        return user.map(notificationRepository::findByUser).orElseGet(List::of);
+    }
+
+    public boolean deleteNotification(Long notificationId) {
+        if (notificationRepository.existsById(notificationId)) {
+            notificationRepository.deleteById(notificationId);
+            return true;
+        }
+        return false;
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/service/user/UserService.java
+package com.musicshop.service.user;
+
+import com.musicshop.model.user.User;
+import com.musicshop.repository.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+
+    @Autowired
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public Optional<User> getUser(Long userId) {
+        return userRepository.findById(userId);
+    }
+
+    public User updateUser(Long userId, User userDetails) {
+        return userRepository.findById(userId).map(user -> {
+            user.setFirstName(userDetails.getFirstName());
+            user.setLastName(userDetails.getLastName());
+            user.setEmail(userDetails.getEmail());
+            user.setPhoneNumber(userDetails.getPhoneNumber());
+            // Will add any other fields that have to be updated
+            return userRepository.save(user);
+        }).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+}
+
+
+# File: backend/src/main/java/com/musicshop/validation/product/BasicProductValidator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+
+import javax.xml.bind.ValidationException;
+import java.math.BigDecimal;
+
+public class BasicProductValidator implements ProductValidator {
+    @Override
+    public void validate(Product product) throws ValidationException {
+        if (product.getName() == null || product.getName().isEmpty()) {
+            throw new ValidationException("Product name is required.");
+        }
+        if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Product price must be greater than 0.");
+        }
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/validation/product/CategoryValidationDecorator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+import javax.xml.bind.ValidationException;
+
+public class CategoryValidationDecorator extends ProductValidatorDecorator {
+    public CategoryValidationDecorator(ProductValidator decoratedValidator) {
+        super(decoratedValidator);
+    }
+
+    @Override
+    public void validate(Product product) throws ValidationException {
+        super.validate(product);
+        if (product.getCategory() == null) {
+            throw new ValidationException("Product category is required.");
+        }
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/validation/product/DescriptionValidationDecorator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+import javax.xml.bind.ValidationException;
+
+public class DescriptionValidationDecorator extends ProductValidatorDecorator {
+    public DescriptionValidationDecorator(ProductValidator decoratedValidator) {
+        super(decoratedValidator);
+    }
+
+    @Override
+    public void validate(Product product) throws ValidationException {
+        super.validate(product);
+        if (product.getDescription() == null || product.getDescription().trim().isEmpty()) {
+            throw new ValidationException("Product description is required.");
+        }
+    }
+}
+
+
+# File: backend/src/main/java/com/musicshop/validation/product/NameValidationDecorator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+
+import javax.xml.bind.ValidationException;
+
+public class NameValidationDecorator extends ProductValidatorDecorator {
+    public NameValidationDecorator(ProductValidator decoratedValidator) {
+        super(decoratedValidator);
+    }
+
+    @Override
+    public void validate(Product product) throws ValidationException {
+        super.validate(product); // validate using the basic validator
+        if (!product.getName().matches("^[a-zA-Z0-9 ]+$")) {
+            throw new ValidationException("Product name contains invalid characters.");
+        }
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/validation/product/PriceValidationDecorator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+
+import javax.xml.bind.ValidationException;
+import java.math.BigDecimal;
+
+public class PriceValidationDecorator extends ProductValidatorDecorator {
+    public PriceValidationDecorator(ProductValidator decoratedValidator) {
+        super(decoratedValidator);
+    }
+
+    @Override
+    public void validate(Product product) throws ValidationException {
+        super.validate(product); // validate using the basic validator or previous decorator
+        if (product.getPrice().compareTo(new BigDecimal("10000")) > 0) {
+            throw new ValidationException("Product price is unrealistically high.");
+        }
+    }
+}
+
+# File: backend/src/main/java/com/musicshop/validation/product/ProductValidator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+
+import javax.xml.bind.ValidationException;
+
+public interface ProductValidator {
+    void validate(Product product) throws ValidationException;
+}
+
+
+# File: backend/src/main/java/com/musicshop/validation/product/ProductValidatorDecorator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+
+import javax.xml.bind.ValidationException;
+
+public abstract class ProductValidatorDecorator implements ProductValidator {
+    protected ProductValidator decoratedValidator;
+
+    public ProductValidatorDecorator(ProductValidator decoratedValidator) {
+        this.decoratedValidator = decoratedValidator;
+    }
+
+    public void validate(Product product) throws ValidationException {
+        decoratedValidator.validate(product);
+    }
+}
+
+
+# File: backend/src/main/java/com/musicshop/validation/product/QuantityAvailableValidationDecorator.java
+package com.musicshop.validation.product;
+
+import com.musicshop.model.product.Product;
+import javax.xml.bind.ValidationException;
+
+public class QuantityAvailableValidationDecorator extends ProductValidatorDecorator {
+    public QuantityAvailableValidationDecorator(ProductValidator decoratedValidator) {
+        super(decoratedValidator);
+    }
+
+    @Override
+    public void validate(Product product) throws ValidationException {
+        super.validate(product);
+        if (product.getQuantityAvailable() <= 0) {
+            throw new ValidationException("There must be at least one product.");
+        }
+    }
+}
+
+# File: backend/src/main/resources/static/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Music Shop</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Welcome to the Music Shop!</h1>
+<button id="viewProducts">View Products</button>
+<button id="addProduct">Add Product</button>
+<div id="productList"></div>
+<div id="cart">
+  <h2>Shopping Cart</h2>
+  <ul id="cartItems"></ul>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
+
+# File: backend/src/main/resources/static/script.js
+// script.js
+
+document.getElementById('viewProducts').addEventListener('click', viewProducts);
+
+function viewProducts() {
+    fetch('/products')
+        .then(response => response.json())
+        .then(products => {
+            const productList = document.getElementById('productList');
+            productList.innerHTML = '';
+            products.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.classList.add('product');
+                productDiv.innerHTML = `
+                    <strong>${product.name}</strong> - Price: ${product.price}
+                    <button onclick="addToCart(${product.id})">Add to Cart</button>
+                    <button onclick="editProduct(${product.id})">Edit</button>
+                `;
+                productList.appendChild(productDiv);
+            });
+        });
+}
+
+document.getElementById('addProduct').addEventListener('click', addProduct);
+
+function addProduct() {
+    const newName = prompt('Enter product name:', '');
+    const newPrice = prompt('Enter product price:', '');
+
+    if (newName && !isNaN(parseFloat(newPrice))) {
+        const newProduct = {
+            name: newName,
+            price: parseFloat(newPrice)
+        };
+
+        fetch('/products', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newProduct)
+        })
+            .then(response => {
+                if (response.status === 201) {
+                    alert('Product added successfully.');
+                    viewProducts(); // Refresh the product list
+                } else {
+                    alert('Failed to add the product.');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding product:', error);
+            });
+    } else {
+        alert('Invalid input. Please try again.');
+    }
+}
+
+function editProduct(productId) {
+    const newName = prompt('Enter new product name:', '');
+    const newPrice = prompt('Enter new product price:', '');
+
+    if (newName && !isNaN(parseFloat(newPrice))) {
+        const updatedProduct = {
+            name: newName, price: parseFloat(newPrice)
+        };
+
+        fetch(`/products/${productId}`, {
+            method: 'PATCH', headers: {
+                'Content-Type': 'application/json'
+            }, body: JSON.stringify(updatedProduct)
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('Product updated successfully.');
+                    viewProducts(); // Refresh the product list
+                    viewCart(); // Refresh the cart
+                } else {
+                    alert('Failed to update the product.');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating product:', error);
+            });
+    } else {
+        alert('Invalid input. Please try again.');
+    }
+}
+
+function addToCart(productId) {
+    const quantity = parseInt(prompt('Enter quantity:', '1'), 10);
+    if (isNaN(quantity) || quantity <= 0) {
+        alert('Please enter a valid quantity.');
+        return;
+    }
+
+    fetch(`/carts/1/products/${productId}?quantity=${quantity}`, {
+        method: 'POST'
+    })
+        .then(response => {
+            if (response.status === 200) {
+                alert(`Added ${quantity} items to the cart.`);
+                viewCart(); // Refresh the cart view
+            } else {
+                alert('Failed to add items to the cart.');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding items to the cart:', error);
+        });
+}
+
+function viewCart() {
+    fetch('/carts/1/details')
+        .then(response => response.json())
+        .then(cartDetails => {
+            const cartItems = document.getElementById('cartItems');
+            cartItems.innerHTML = '';
+
+            cartDetails.forEach(cartItem => {
+                const product = cartItem.product;
+                const cartItemLi = document.createElement('li');
+                cartItemLi.innerHTML = `
+                    <strong>${product.name}</strong> - Price: ${product.price} - Quantity: ${cartItem.quantity}
+                    <button onclick="editCartItem(${cartItem.id})">Edit</button>
+                    <button onclick="deleteCartItem(${cartItem.id})">Delete</button>
+                `;
+                cartItems.appendChild(cartItemLi);
+            });
+        });
+}
+
+
+function editCartItem(cartItemId) {
+    const newQuantity = parseInt(prompt('Enter new quantity:', '1'), 10);
+    if (isNaN(newQuantity) || newQuantity <= 0) {
+        alert('Please enter a valid quantity.');
+        return;
+    }
+
+    fetch(`/carts/details/${cartItemId}?newQuantity=${newQuantity}`, {
+        method: 'PUT'
+    })
+        .then(response => {
+            if (response.status === 200) {
+                alert('Cart item updated.');
+                viewCart(); // Refresh the cart view
+            } else {
+                alert('Failed to update cart item.');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating cart item:', error);
+        });
+}
+
+function deleteCartItem(cartItemId) {
+    if (confirm('Are you sure you want to delete this item from the cart?')) {
+        fetch(`/carts/details/${cartItemId}`, {
+            method: 'DELETE'
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('Cart item deleted.');
+                    viewCart(); // Refresh the cart view
+                } else {
+                    alert('Failed to delete cart item.');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting cart item:', error);
+            });
+    }
+}
+
+# File: backend/src/main/resources/static/style.css
+body {
+    font-family: Arial, sans-serif;
+}
+
+#productList, #cart {
+    margin-top: 20px;
+}
+
+.product, .cart-item {
+    margin-bottom: 10px;
+}
+
+# File: backend/src/test/java/com/musicshop/cart/CartServiceTest.java
+//package com.musicshop.cart;
+//
+//import com.musicshop.model.cart.Cart;
+//import com.musicshop.model.cart.CartDetail;
+//import com.musicshop.model.product.Product;
+//import com.musicshop.model.user.User;
+//import com.musicshop.repository.cart.CartDetailRepository;
+//import com.musicshop.repository.cart.CartRepository;
+//import com.musicshop.repository.product.ProductRepository;
+//import com.musicshop.repository.user.UserRepository;
+//import com.musicshop.service.cart.CartService;
+//import org.junit.jupiter.api.BeforeEach;
+//import org.junit.jupiter.api.Test;
+//import org.junit.jupiter.api.extension.ExtendWith;
+//import org.mockito.InjectMocks;
+//import org.mockito.Mock;
+//import org.mockito.junit.jupiter.MockitoExtension;
+//
+//import java.time.LocalDateTime;
+//import java.util.ArrayList;
+//import java.util.List;
+//import java.util.Optional;
+//
+//import static org.mockito.Mockito.*;
+//import static org.junit.jupiter.api.Assertions.*;
+//
+//@ExtendWith(MockitoExtension.class)
+//class CartServiceTest {
+//
+//    @Mock
+//    private CartRepository cartRepository;
+//    @Mock
+//    private CartDetailRepository cartDetailRepository;
+//    @Mock
+//    private ProductRepository productRepository;
+//    @Mock
+//    private UserRepository userRepository;
+//
+//    @InjectMocks
+//    private CartService cartService;
+//
+//    private User user;
+//    private Product product;
+//    private Cart cart;
+//
+//    @BeforeEach
+//    void setUp() {
+//        user = new User();
+//        user.setId(1L);
+//
+//        product = new Product();
+//        product.setId(1L);
+//        product.setQuantityAvailable(10);
+//
+//        cart = new Cart();
+//        cart.setUser(user);
+//        cart.setDateCreated(LocalDateTime.now());
+//    }
+//
+//    @Test
+//    void addProductToCart_Success() {
+//        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+//        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+//        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+//
+//        CartDetail cartDetail = cartService.addProductToCart(user.getId(), product.getId(), 5);
+//
+//        assertNotNull(cartDetail);
+//        assertEquals(5, cartDetail.getQuantity());
+//        verify(cartDetailRepository).save(any(CartDetail.class));
+//    }
+//
+//    @Test
+//    void addProductToCart_ProductNotAvailable() {
+//        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+//        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+//        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+//
+//        assertThrows(RuntimeException.class, () -> {
+//            cartService.addProductToCart(user.getId(), product.getId(), 15);
+//        });
+//    }
+//
+//    @Test
+//    void getCartDetail_Found() {
+//        CartDetail cartDetail = new CartDetail();
+//        cartDetail.setCart(cart);
+//        cartDetail.setProduct(product);
+//        cartDetail.setQuantity(5);
+//
+//        when(cartRepository.findById(cart.getId())).thenReturn(Optional.of(cart));
+//        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+//        when(cartDetailRepository.findByCartAndProduct(cart, product)).thenReturn(Optional.of(cartDetail));
+//
+//        Optional<CartDetail> foundCartDetail = cartService.getCartDetail(cart.getId(), product.getId());
+//
+//        assertTrue(foundCartDetail.isPresent());
+//        assertEquals(5, foundCartDetail.get().getQuantity());
+//    }
+//
+//    @Test
+//    void listCartDetails_Success() {
+//        List<CartDetail> cartDetails = new ArrayList<>();
+//        CartDetail cartDetail = new CartDetail();
+//        cartDetail.setCart(cart);
+//        cartDetails.add(cartDetail);
+//
+//        when(cartRepository.findById(cart.getId())).thenReturn(Optional.of(cart));
+//        when(cartDetailRepository.findAll()).thenReturn(cartDetails);
+//
+//        List<CartDetail> details = cartService.listCartDetails(cart.getId());
+//
+//        assertFalse(details.isEmpty());
+//        assertEquals(1, details.size());
+//    }
+//
+//    @Test
+//    void updateCartDetail_Success() {
+//        CartDetail cartDetail = new CartDetail();
+//        cartDetail.setId(1L);
+//        cartDetail.setQuantity(5);
+//
+//        when(cartDetailRepository.findById(cartDetail.getId())).thenReturn(Optional.of(cartDetail));
+//
+//        CartDetail updatedDetail = cartService.updateCartDetail(cartDetail.getId(), 10);
+//
+//        assertEquals(10, updatedDetail.getQuantity());
+//        verify(cartDetailRepository).save(cartDetail);
+//    }
+//
+//    @Test
+//    void deleteCartDetail_Success() {
+//        Long detailId = 1L;
+//
+//        doNothing().when(cartDetailRepository).deleteById(detailId);
+//        cartService.deleteCartDetail(detailId);
+//
+//        verify(cartDetailRepository).deleteById(detailId);
+//    }
+//}
+//
+
+# File: backend/src/test/java/com/musicshop/product/ProductServiceTest.java
+//package com.musicshop.product;
+//
+//import com.musicshop.discount.DiscountStrategyFactory;
+//import com.musicshop.event.product.ProductDeletionEvent;
+//import com.musicshop.event.product.ProductDiscountEvent;
+//import com.musicshop.event.product.ProductUpdateEvent;
+//import com.musicshop.model.category.Category;
+//import com.musicshop.model.product.Product;
+//import com.musicshop.repository.cart.CartDetailRepository;
+//import com.musicshop.repository.category.CategoryRepository;
+//import com.musicshop.repository.product.ProductRepository;
+//import com.musicshop.service.product.ProductService;
+//import com.musicshop.validation.product.ProductValidator;
+//import org.junit.jupiter.api.BeforeEach;
+//import org.junit.jupiter.api.Test;
+//import org.junit.jupiter.api.extension.ExtendWith;
+//import org.mockito.InjectMocks;
+//import org.mockito.Mock;
+//import org.mockito.junit.jupiter.MockitoExtension;
+//import org.springframework.context.ApplicationEventPublisher;
+//
+//import javax.xml.bind.ValidationException;
+//import java.math.BigDecimal;
+//import java.util.List;
+//import java.util.Optional;
+//
+//import static org.junit.jupiter.api.Assertions.*;
+//import static org.mockito.Mockito.*;
+//
+//@ExtendWith(MockitoExtension.class)
+//public class ProductServiceTest {
+//
+//    @Mock
+//    private ProductRepository productRepository;
+//    @Mock
+//    private CategoryRepository categoryRepository;
+//    @Mock
+//    private ApplicationEventPublisher eventPublisher;
+//    @Mock
+//    private DiscountStrategyFactory discountStrategyFactory;
+//    @Mock
+//    private CartDetailRepository cartDetailRepository;
+//    @Mock
+//    private ProductValidator productValidator;
+//
+//    @InjectMocks
+//    private ProductService productService;
+//
+//    private Product product;
+//
+//    @BeforeEach
+//    void setUp() {
+//        product = new Product();
+//        product.setId(1L);
+//        product.setName("Guitar");
+//        product.setPrice(new BigDecimal("500"));
+//        product.setDescription("An acoustic guitar");
+//        product.setQuantityAvailable(10);
+//        product.setCategory(new Category());
+//    }
+//
+//    @Test
+//    void createProduct_Success() throws ValidationException {
+//        when(productRepository.save(any(Product.class))).thenReturn(product);
+//        Product createdProduct = productService.createProduct(product);
+//        assertNotNull(createdProduct);
+//        assertEquals("Guitar", createdProduct.getName());
+//        verify(productValidator).validate(product);
+//    }
+//
+//    @Test
+//    void getProductById_Found() {
+//        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+//        Optional<Product> foundProduct = productService.getProductById(1L);
+//        assertTrue(foundProduct.isPresent());
+//        assertEquals("Guitar", foundProduct.get().getName());
+//    }
+//
+//    @Test
+//    void getProductById_NotFound() {
+//        when(productRepository.findById(1L)).thenReturn(Optional.empty());
+//        Optional<Product> foundProduct = productService.getProductById(1L);
+//        assertFalse(foundProduct.isPresent());
+//    }
+//
+//    @Test
+//    void updateProduct_Success() {
+//        Product updatedDetails = new Product();
+//        updatedDetails.setPrice(new BigDecimal("600"));
+//        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+//        when(productRepository.save(any(Product.class))).thenReturn(product);
+//        Optional<Product> updatedProduct = productService.updateProduct(1L, updatedDetails);
+//        assertTrue(updatedProduct.isPresent());
+//        assertEquals(new BigDecimal("600"), updatedProduct.get().getPrice());
+//        verify(eventPublisher).publishEvent(any(ProductUpdateEvent.class));
+//    }
+//
+//    @Test
+//    void deleteProduct_Success() {
+//        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+//        productService.deleteProduct(1L);
+//        verify(productRepository).delete(product);
+//        verify(eventPublisher).publishEvent(any(ProductDeletionEvent.class));
+//    }
+//
+//    @Test
+//    void applyDiscount_Success() {
+//        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+//        when(discountStrategyFactory.getDiscountStrategy("fixed")).thenReturn(amount -> new BigDecimal("400"));
+//        Optional<Product> discountedProduct = productService.applyDiscount(1L, "fixed");
+//        assertTrue(discountedProduct.isPresent());
+//        assertEquals(new BigDecimal("400"), discountedProduct.get().getPrice());
+//        verify(eventPublisher).publishEvent(any(ProductDiscountEvent.class));
+//    }
+//}
+
+# File: backend/src/test/java/com/musicshop/repository/CartDetailRepositoryTest.java
+//package com.musicshop.repository;
+//
+//import com.musicshop.model.cart.CartDetail;
+//import com.musicshop.repository.cart.CartDetailRepository;
+//import org.junit.jupiter.api.BeforeEach;
+//import org.junit.jupiter.api.Test;
+//
+//import java.util.Optional;
+//
+//import static org.junit.jupiter.api.Assertions.assertEquals;
+//import static org.junit.jupiter.api.Assertions.assertTrue;
+//
+//public class CartDetailRepositoryTest {
+//
+//    private CartDetailRepository repository;
+//
+//    @BeforeEach
+//    public void setUp() {
+//        repository = new CartDetailRepository();
+//    }
+//
+//    @Test
+//    public void testAddAndRetrieveCartDetail() {
+//        CartDetail cartDetail = new CartDetail();
+//        cartDetail.setCartId(1L);
+//        cartDetail.setProductId(2L);
+//        cartDetail.setQuantity(3);
+//
+//        repository.save(cartDetail);
+//
+//        Optional<CartDetail> retrievedDetail = repository.findById(cartDetail.getId());
+//        assertTrue(retrievedDetail.isPresent());
+//        assertEquals(cartDetail.getProductId(), retrievedDetail.get().getProductId());
+//        assertEquals(cartDetail.getQuantity(), retrievedDetail.get().getQuantity());
+//    }
+//
+//    @Test
+//    public void testFindByCartIdAndProductId() {
+//        CartDetail cartDetail1 = new CartDetail();
+//        cartDetail1.setCartId(1L);
+//        cartDetail1.setProductId(2L);
+//        cartDetail1.setQuantity(3);
+//        repository.save(cartDetail1);
+//
+//        CartDetail cartDetail2 = new CartDetail();
+//        cartDetail2.setCartId(1L);
+//        cartDetail2.setProductId(1L);
+//        cartDetail2.setQuantity(5);
+//        repository.save(cartDetail2);
+//
+//        Optional<CartDetail> result = repository.findByCartIdAndProductId(1L, 1L);
+//        assertTrue(result.isPresent());
+//        assertEquals(cartDetail2.getProductId(), result.get().getProductId());
+//        assertEquals(cartDetail2.getQuantity(), result.get().getQuantity());
+//    }
+//}
+
+# File: backend/src/test/java/com/musicshop/repository/ProductRepositoryTest.java
+
+# File: backend/src/test/java/com/musicshop/user/UserServiceTest.java
+package com.musicshop.user;
+
+import com.musicshop.model.user.User;
+import com.musicshop.repository.user.UserRepository;
+import com.musicshop.service.user.UserService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class UserServiceTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
+    private UserService userService;
+
+    @BeforeEach
+    void setUp() {
+
+    }
+
+    @Test
+    void getUser_whenUserExists() {
+        Long userId = 1L;
+        User mockUser = new User();
+        mockUser.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+
+        Optional<User> result = userService.getUser(userId);
+
+        assertTrue(result.isPresent());
+        assertEquals(mockUser, result.get());
+        verify(userRepository).findById(userId);
+    }
+
+    @Test
+    void getUser_whenUserDoesNotExist() {
+        Long userId = 1L;
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        Optional<User> result = userService.getUser(userId);
+
+        assertFalse(result.isPresent());
+        verify(userRepository).findById(userId);
+    }
+
+    @Test
+    void updateUser_whenUserExists() {
+        Long userId = 1L;
+        User existingUser = new User();
+        existingUser.setId(userId);
+        existingUser.setFirstName("Original");
+
+        User updatedDetails = new User();
+        updatedDetails.setFirstName("Updated");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User updatedUser = userService.updateUser(userId, updatedDetails);
+
+        assertEquals("Updated", updatedUser.getFirstName());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void updateUser_whenUserDoesNotExist() {
+        Long userId = 1L;
+        User updatedDetails = new User();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> userService.updateUser(userId, updatedDetails));
+        verify(userRepository, never()).save(any(User.class));
+    }
+}
+
+# File: backend/src/test/resources/application-test.properties
+

@@ -1,15 +1,31 @@
-const Product = ({product, onProductClick, isAdmin}) => {
-    const addToCart = (e, productId, availableQuantity, isAdmin) => {
+import { Button } from "@/components/ui/button";
+import { ShoppingCart } from "lucide-react";
+
+interface ProductData {
+    id: number;
+    name: string;
+    price: number;
+    quantityAvailable?: number;
+}
+
+interface ProductProps {
+    product: ProductData;
+    onProductClick: (product: ProductData) => void;
+    isAdmin: boolean;
+}
+
+const Product = ({ product, onProductClick, isAdmin }: ProductProps) => {
+    const addToCart = (e: React.MouseEvent, productId: number, availableQuantity: number | undefined) => {
         e.stopPropagation(); // Prevents the click from reaching the parent div
 
-        const quantity = parseInt(prompt('Enter quantity:', '1'), 10);
+        const quantity = parseInt(prompt('Enter quantity:', '1') || '0', 10);
 
         if (isNaN(quantity) || quantity <= 0) {
             alert('Please enter a valid quantity.');
             return;
         }
 
-        if (quantity > availableQuantity) {
+        if (availableQuantity && quantity > availableQuantity) {
             alert(`Only ${availableQuantity} items available.`);
             return;
         }
@@ -30,12 +46,31 @@ const Product = ({product, onProductClick, isAdmin}) => {
     };
 
     return (
-        <div className="product" onClick={() => onProductClick(product)}>
-            <strong>{product.name}</strong> - Price: ${product.price}
-            {/*Admins don't have add to cart functionality*/}
+        <div 
+            className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => onProductClick(product)}
+        >
+            {/* Product Image Placeholder */}
+            <div className="aspect-square bg-muted/30 rounded-md mb-3 flex items-center justify-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-muted to-muted/50 rounded-lg" />
+            </div>
+            
+            <h3 className="font-medium text-foreground mb-1 line-clamp-1">{product.name}</h3>
+            <p className="text-lg font-bold text-primary mb-3">{product.price} EUR</p>
+            
+            {/* Admins don't have add to cart functionality */}
             {!isAdmin && (
-                <button onClick={(e) => addToCart(e, product.id, product.quantityAvailable)}>Add to Cart</button>
-            )}        </div>
+                <Button 
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={(e) => addToCart(e, product.id, product.quantityAvailable)}
+                >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Add to Cart
+                </Button>
+            )}
+        </div>
     );
 };
 

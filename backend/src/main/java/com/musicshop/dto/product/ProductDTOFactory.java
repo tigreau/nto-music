@@ -1,7 +1,5 @@
 package com.musicshop.dto.product;
 
-import com.musicshop.dto.product.SimpleProductDTO;
-import com.musicshop.dto.product.DetailedProductDTO;
 import com.musicshop.model.product.Product;
 
 public class ProductDTOFactory {
@@ -11,6 +9,7 @@ public class ProductDTOFactory {
                 .id(product.getId())
                 .name(product.getName())
                 .price(product.getPrice())
+                .categoryName(product.getCategory() != null ? product.getCategory().getCategoryName() : null)
                 .build();
     }
 
