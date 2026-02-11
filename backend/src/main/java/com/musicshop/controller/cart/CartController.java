@@ -1,5 +1,7 @@
 package com.musicshop.controller.cart;
 
+import com.musicshop.dto.cart.CartItemDTO;
+import com.musicshop.mapper.CartMapper;
 import com.musicshop.model.cart.CartDetail;
 import com.musicshop.service.cart.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +15,12 @@ import java.util.List;
 public class CartController {
 
     private final CartService cartService;
+    private final CartMapper cartMapper;
 
     @Autowired
-    public CartController(CartService cartService) {
+    public CartController(CartService cartService, CartMapper cartMapper) {
         this.cartService = cartService;
+        this.cartMapper = cartMapper;
     }
 
     @PostMapping("/{userId}/products/{productId}")
@@ -31,27 +35,28 @@ public class CartController {
     }
 
     @GetMapping("/{cartId}/products/{productId}")
-    public ResponseEntity<CartDetail> getCartDetail(@PathVariable Long cartId, @PathVariable Long productId) {
+    public ResponseEntity<CartItemDTO> getCartDetail(@PathVariable Long cartId, @PathVariable Long productId) {
         return cartService.getCartDetail(cartId, productId)
+                .map(cartMapper::toCartItemDTO)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{cartId}/details")
-    public ResponseEntity<List<CartDetail>> listCartDetails(@PathVariable Long cartId) {
+    public ResponseEntity<List<CartItemDTO>> listCartDetails(@PathVariable Long cartId) {
         try {
             List<CartDetail> cartDetails = cartService.listCartDetails(cartId);
-            return ResponseEntity.ok(cartDetails);
+            return ResponseEntity.ok(cartMapper.toCartItemDTOs(cartDetails));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @PutMapping("/details/{detailId}")
-    public ResponseEntity<CartDetail> updateCartDetail(@PathVariable Long detailId, @RequestParam int newQuantity) {
+    public ResponseEntity<CartItemDTO> updateCartDetail(@PathVariable Long detailId, @RequestParam int newQuantity) {
         try {
             CartDetail updatedCartDetail = cartService.updateCartDetail(detailId, newQuantity);
-            return ResponseEntity.ok(updatedCartDetail);
+            return ResponseEntity.ok(cartMapper.toCartItemDTO(updatedCartDetail));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
         }

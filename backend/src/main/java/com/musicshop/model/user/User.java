@@ -30,7 +30,6 @@ public class User extends BaseModel<Long> {
     @OneToMany(mappedBy = "user")
     private Set<Notification> notifications;
 
-
     public String getFirstName() {
         return firstName;
     }
@@ -71,6 +70,7 @@ public class User extends BaseModel<Long> {
         this.password = password;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Set<UserAddress> getUserAddresses() {
         return userAddresses;
     }
@@ -79,6 +79,7 @@ public class User extends BaseModel<Long> {
         this.userAddresses = userAddresses;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Set<UserOrder> getOrders() {
         return orders;
     }
@@ -87,6 +88,7 @@ public class User extends BaseModel<Long> {
         this.orders = orders;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Set<Review> getReviews() {
         return reviews;
     }
@@ -95,7 +97,7 @@ public class User extends BaseModel<Long> {
         this.reviews = reviews;
     }
 
-
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Set<Notification> getNotifications() {
         return notifications;
     }

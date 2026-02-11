@@ -44,4 +44,3 @@ public class Notification extends BaseModel<Long> {
         this.user = user;
     }
 }
-

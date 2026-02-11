@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { getCategoryImage } from '@/lib/categoryUtils';
 
 interface Product {
   id: number
@@ -192,8 +193,18 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
             >
               {/* Image Placeholder */}
               <div className="aspect-square bg-muted/50 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="text-4xl">🎵</span>
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+
+                {getCategoryImage(product.categoryName) ? (
+                  <img
+                    src={getCategoryImage(product.categoryName)!}
+                    alt={product.name}
+                    className="w-full h-full object-contain p-4 mix-blend-multiply dark:mix-blend-normal"
+                  />
+                ) : (
+                  <span className="text-4xl">🎵</span>
+                )}
+
                 {product.categoryName && (
                   <Badge className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm text-foreground hover:bg-background/90">
                     {product.categoryName}

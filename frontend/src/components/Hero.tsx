@@ -2,28 +2,25 @@ import { Link } from "react-router-dom"
 import { Truck, ShieldCheck, RotateCcw, CreditCard, ArrowRight, Zap, DollarSign, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
+import { Category } from "@/types"
 
 const CATEGORIES = [
-  { name: "Guitars", href: "/?category=Guitars", count: 0 },
-  { name: "Drums", href: "/?category=Drums", count: 0 },
-  { name: "Keys", href: "/?category=Keys", count: 0 },
-  { name: "Studio", href: "/?category=Studio", count: 0 },
-  { name: "DJ", href: "/?category=DJ", count: 0 },
-  { name: "Mics", href: "/?category=Mics", count: 0 },
-  { name: "Software", href: "/?category=Software", count: 0 },
-  { name: "Accessories", href: "/?category=Accessories", count: 0 },
-  { name: "Traditional", href: "/?category=Traditional", count: 0 },
+  { name: "Guitars & Plucked", slug: "guitars-plucked", href: "/?category=guitars-plucked" },
+  { name: "Drums & Percussion", slug: "drums-percussion", href: "/?category=drums-percussion" },
+  { name: "Keys & Synths", slug: "keys-synths", href: "/?category=keys-synths" },
+  { name: "Wind & Brass", slug: "wind-brass", href: "/?category=wind-brass" },
+  { name: "Bowed Strings", slug: "bowed-strings", href: "/?category=bowed-strings" },
 ]
 
 export function Hero() {
-  const [categories, setCategories] = useState(CATEGORIES);
+  const [categories, setCategories] = useState(CATEGORIES.map(c => ({ ...c, count: 0 })));
 
   useEffect(() => {
     fetch('/api/categories')
       .then(res => res.json())
-      .then((data: { name: string, productCount: number }[]) => {
+      .then((data: Category[]) => {
         const updated = CATEGORIES.map(fixed => {
-          const match = data.find(d => d.name.toLowerCase() === fixed.name.toLowerCase());
+          const match = data.find(d => d.slug === fixed.slug);
           return { ...fixed, count: match ? match.productCount : 0 };
         });
         setCategories(updated);
@@ -143,7 +140,7 @@ export function Hero() {
           <nav className="flex items-center justify-start lg:justify-center gap-1 py-2.5 overflow-x-auto">
             {categories.map((cat) => (
               <Link
-                key={cat.name}
+                key={cat.slug}
                 to={cat.href}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-foreground hover:text-primary hover:bg-primary/5 rounded-full transition-colors whitespace-nowrap"
               >

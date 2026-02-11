@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { X, ShoppingCart } from "lucide-react";
+import { getCategoryImage } from '@/lib/categoryUtils';
 
 interface Product {
     id: number;
@@ -32,11 +33,11 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Backdrop */}
-            <div 
+            <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={onClose}
             />
-            
+
             {/* Modal */}
             <div className="relative bg-card rounded-xl border border-border shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
                 {/* Header */}
@@ -51,14 +52,25 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                         <X className="w-5 h-5" />
                     </Button>
                 </div>
-                
+
                 {/* Content */}
                 <div className="p-6">
                     {/* Product Image Placeholder */}
-                    <div className="aspect-video bg-muted rounded-lg mb-6 flex items-center justify-center">
-                        <div className="w-24 h-24 bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/10 rounded-lg" />
+                    {/* Product Image */}
+                    <div className="aspect-video bg-muted rounded-lg mb-6 flex items-center justify-center overflow-hidden">
+                        {getCategoryImage(product.categoryName) ? (
+                            <img
+                                src={getCategoryImage(product.categoryName)!}
+                                alt={product.name}
+                                className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal"
+                            />
+                        ) : (
+                            <div className="w-24 h-24 bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/10 rounded-lg flex items-center justify-center">
+                                <span className="text-4xl">🎵</span>
+                            </div>
+                        )}
                     </div>
-                    
+
                     <div className="space-y-4">
                         {product.description && (
                             <div>
@@ -66,7 +78,7 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                 <p className="text-foreground">{product.description}</p>
                             </div>
                         )}
-                        
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Price</h3>
@@ -74,7 +86,7 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                     {typeof product.price === 'number' ? product.price.toFixed(2) : product.price} EUR
                                 </p>
                             </div>
-                            
+
                             {product.quantityAvailable !== undefined && (
                                 <div>
                                     <h3 className="text-sm font-medium text-muted-foreground mb-1">Availability</h3>
@@ -84,7 +96,7 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                 </div>
                             )}
                         </div>
-                        
+
                         {product.categoryName && (
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
@@ -95,7 +107,7 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                         )}
                     </div>
                 </div>
-                
+
                 {/* Footer */}
                 <div className="p-4 border-t border-border bg-muted/30 flex gap-3">
                     {onAddToCart && product.quantityAvailable !== 0 && (

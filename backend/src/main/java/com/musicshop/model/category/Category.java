@@ -12,7 +12,20 @@ import java.util.Set;
 @Table(name = "categories")
 public class Category extends BaseModel<Long> {
 
-    @ManyToOne
+    @Column(nullable = false)
+    private String categoryName;
+
+    @Column(unique = true)
+    private String slug;
+
+    @Column(length = 1000)
+    private String description;
+
+    private String iconUrl;
+
+    private int displayOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ParentCategoryID")
     @JsonBackReference
     private Category parentCategory;
@@ -21,8 +34,47 @@ public class Category extends BaseModel<Long> {
     @JsonManagedReference
     private Set<Category> subCategories = new HashSet<>();
 
+    // Getters and Setters
 
-    private String categoryName;
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getIconUrl() {
+        return iconUrl;
+    }
+
+    public void setIconUrl(String iconUrl) {
+        this.iconUrl = iconUrl;
+    }
+
+    public int getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
+    }
 
     public Category getParentCategory() {
         return parentCategory;
@@ -38,13 +90,5 @@ public class Category extends BaseModel<Long> {
 
     public void setSubCategories(Set<Category> subCategories) {
         this.subCategories = subCategories;
-    }
-
-    public String getCategoryName() {
-        return categoryName;
-    }
-
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
     }
 }

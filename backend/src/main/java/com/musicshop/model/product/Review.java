@@ -1,6 +1,7 @@
 package com.musicshop.model.product;
 
 import com.musicshop.model.BaseModel;
+import com.musicshop.model.category.Category;
 import com.musicshop.model.user.User;
 
 import javax.persistence.*;
@@ -9,17 +10,46 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "reviews")
 public class Review extends BaseModel<Long> {
-    @ManyToOne
-    @JoinColumn(name = "product_id")
-    private Product product;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
+    @Column(nullable = false)
     private int rating;
+
+    @Column(nullable = false, length = 2000)
     private String comment;
+
+    @Column(nullable = false)
     private LocalDateTime datePosted;
+
+    private boolean verifiedPurchase;
+
+    @PrePersist
+    protected void onCreate() {
+        if (datePosted == null) {
+            datePosted = LocalDateTime.now();
+        }
+    }
+
+    // Getters and Setters
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 
     public Product getProduct() {
         return product;
@@ -29,12 +59,12 @@ public class Review extends BaseModel<Long> {
         this.product = product;
     }
 
-    public User getUser() {
-        return user;
+    public Category getCategory() {
+        return category;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     public int getRating() {
@@ -59,5 +89,13 @@ public class Review extends BaseModel<Long> {
 
     public void setDatePosted(LocalDateTime datePosted) {
         this.datePosted = datePosted;
+    }
+
+    public boolean isVerifiedPurchase() {
+        return verifiedPurchase;
+    }
+
+    public void setVerifiedPurchase(boolean verifiedPurchase) {
+        this.verifiedPurchase = verifiedPurchase;
     }
 }
