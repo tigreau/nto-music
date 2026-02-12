@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useCart } from "@/context/CartContext";
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { getToken } from '@/api/client';
 
 const CartPage = () => {
     const { cartItems, refreshCart } = useCart();
@@ -18,8 +19,10 @@ const CartPage = () => {
 
     const deleteCartItem = (cartItemId: number) => {
         if (window.confirm('Are you sure you want to delete this item from the cart?')) {
+            const token = getToken();
             fetch(`/api/carts/details/${cartItemId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
             })
                 .then(response => {
                     if (response.ok) {
@@ -35,8 +38,10 @@ const CartPage = () => {
 
     const handleCheckout = () => {
         if (window.confirm('Confirm purchase? This will clear your cart.')) {
+            const token = getToken();
             fetch('/api/carts/1/clear', {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
             })
                 .then(response => {
                     if (response.ok) {

@@ -1,7 +1,7 @@
 package com.musicshop.repository.category;
 
 import com.musicshop.model.category.Category;
-import org.springframework.data.jpa.repository.EntityGraph;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,7 +17,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
                         + "GROUP BY c.id, c.categoryName, c.slug")
         List<com.musicshop.dto.category.CategoryDTO> findAllWithProductCount();
 
-        @EntityGraph(attributePaths = { "subCategories" })
         @Query("SELECT new com.musicshop.dto.category.CategoryDTO(c.id, c.categoryName, c.slug, COUNT(p)) "
                         + "FROM Category c LEFT JOIN Product p ON p.category = c "
                         + "WHERE c.parentCategory = :parent "

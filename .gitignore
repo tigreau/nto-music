@@ -43,7 +43,10 @@ frontend/node_modules/
 dist/
 frontend/dist/
 
-# Env / local
+
+# Security & Configure
 .env
 .env.local
-*.local
+.env.*
+**/application.properties
+!**/application.properties.example

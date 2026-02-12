@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getToken } from '@/api/client';
 
 interface CartItem {
     id: number;
@@ -20,7 +21,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Hardcoded cart ID 1 as per existing implementation
     const fetchCart = async () => {
         try {
-            const response = await fetch('/api/carts/1/details');
+            const token = getToken();
+            if (!token) return;
+            const response = await fetch('/api/carts/1/details', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setCartItems(data);

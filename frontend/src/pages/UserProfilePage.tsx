@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { User, Save, Mail, Phone } from 'lucide-react';
+import { getStoredUser, getToken } from '@/api/client';
 
 interface UserData {
     firstName: string;
@@ -13,10 +14,14 @@ interface UserData {
 const UserProfilePage = () => {
     const [user, setUser] = useState<UserData>({ firstName: '', lastName: '', email: '', phoneNumber: '' });
     const [isSaving, setIsSaving] = useState(false);
-    const customerId = sessionStorage.getItem('userId'); // Get customer ID from session storage
+    const storedUser = getStoredUser();
+    const customerId = storedUser?.userId;
 
     useEffect(() => {
-        fetch(`/api/users/${customerId}`)
+        const token = getToken();
+        fetch(`/api/users/${customerId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
             .then(response => response.json())
             .then(data => setUser(data))
             .catch(error => console.error('Error fetching user data:', error));
@@ -28,9 +33,13 @@ const UserProfilePage = () => {
 
     const saveChanges = () => {
         setIsSaving(true);
+        const token = getToken();
         fetch(`/api/users/${customerId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify(user)
         })
             .then(response => {

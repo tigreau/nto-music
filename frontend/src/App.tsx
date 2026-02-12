@@ -10,19 +10,21 @@ import Notifications from "./components/Notifications";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
+import { getToken, getStoredUser, clearToken } from "./api/client";
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
-        // Check session storage and update state accordingly
-        setIsAuthenticated(!!sessionStorage.getItem("isAuthenticated"));
-        setIsAdmin(!!sessionStorage.getItem("isAdmin"));
+        const token = getToken();
+        const user = getStoredUser();
+        setIsAuthenticated(!!token);
+        setIsAdmin(user?.role === 'ADMIN');
     }, []);
 
     const handleLogout = () => {
-        sessionStorage.clear(); // Clear all stored session data
+        clearToken();
         setIsAuthenticated(false);
         setIsAdmin(false);
     };

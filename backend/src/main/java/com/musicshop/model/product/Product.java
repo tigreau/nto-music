@@ -17,7 +17,7 @@ public class Product extends BaseModel<Long> {
 
     @Column(nullable = false)
     @NotBlank(message = "Product name is required.")
-    @Pattern(regexp = "^[a-zA-Z0-9 ]+$", message = "Product name contains invalid characters.")
+    @Pattern(regexp = "^[a-zA-Z0-9 \\-'\".,()]+$", message = "Product name contains invalid characters.")
     private String name;
 
     @Column(length = 2000)

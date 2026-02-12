@@ -4,9 +4,7 @@ import com.musicshop.model.BaseModel;
 import com.musicshop.model.order.UserOrder;
 import com.musicshop.model.product.Review;
 
-import javax.persistence.Entity;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.util.Set;
 
 @Entity
@@ -14,9 +12,15 @@ import java.util.Set;
 public class User extends BaseModel<Long> {
     private String firstName;
     private String lastName;
+
+    @Column(unique = true)
     private String email;
+
     private String phoneNumber;
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
 
     @OneToMany(mappedBy = "user")
     private Set<UserAddress> userAddresses;
@@ -104,5 +108,13 @@ public class User extends BaseModel<Long> {
 
     public void setNotifications(Set<Notification> notifications) {
         this.notifications = notifications;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
     }
 }

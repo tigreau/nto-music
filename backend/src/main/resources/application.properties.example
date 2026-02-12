@@ -11,3 +11,9 @@ spring.jpa.show-sql=true
 
 discount.percentage=10
 discount.fixedAmount=5.00
+
+# JWT Configuration
+# REPLACE WITH YOUR OWN STRONG SECRET (Must be Base64 encoded, min 32 bytes/256 bits decoded)
+# Example command to generate: openssl rand -base64 32
+jwt.secret=REPLACE_WITH_YOUR_BASE64_ENCODED_SECRET_KEY
+jwt.expiration=86400000
