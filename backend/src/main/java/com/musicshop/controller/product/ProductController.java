@@ -2,7 +2,7 @@ package com.musicshop.controller.product;
 
 import com.musicshop.dto.product.DetailedProductDTO;
 import com.musicshop.dto.product.SimpleProductDTO;
-import com.musicshop.dto.product.ProductDTOFactory;
+import com.musicshop.mapper.ProductMapper;
 import com.musicshop.model.product.Product;
 import com.musicshop.model.product.ProductCondition;
 import com.musicshop.service.product.ProductService;
@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.xml.bind.ValidationException;
+import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,10 +25,12 @@ import java.util.stream.Collectors;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductMapper productMapper;
 
     @Autowired
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ProductMapper productMapper) {
         this.productService = productService;
+        this.productMapper = productMapper;
     }
 
     /**
@@ -68,25 +70,21 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<DetailedProductDTO> getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
-                .map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product)))
+                .map(product -> ResponseEntity.ok(productMapper.toDetailedProductDTO(product)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<?> createProduct(@RequestBody Product product) {
-        try {
-            Product newProduct = productService.createProduct(product);
-            return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
-        } catch (ValidationException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product) {
+        Product newProduct = productService.createProduct(product);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<DetailedProductDTO> updateProduct(@PathVariable Long id,
             @RequestBody Product productDetails) {
         return productService.updateProduct(id, productDetails)
-                .map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product)))
+                .map(product -> ResponseEntity.ok(productMapper.toDetailedProductDTO(product)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -94,7 +92,7 @@ public class ProductController {
     public ResponseEntity<DetailedProductDTO> partialUpdateProduct(@PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
         return productService.partialUpdateProduct(id, updates)
-                .map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product)))
+                .map(product -> ResponseEntity.ok(productMapper.toDetailedProductDTO(product)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -112,7 +110,7 @@ public class ProductController {
     @PatchMapping("/{id}/apply-discount")
     public ResponseEntity<?> applyDiscount(@PathVariable Long id, @RequestParam String discountType) {
         return productService.applyDiscount(id, discountType)
-                .map(product -> ResponseEntity.ok(ProductDTOFactory.createDetailedProductDTO(product)))
+                .map(product -> ResponseEntity.ok(productMapper.toDetailedProductDTO(product)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

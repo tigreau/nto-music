@@ -27,7 +27,8 @@ public class CartController {
     public ResponseEntity<?> addProductToCart(@PathVariable Long userId, @PathVariable Long productId,
             @RequestParam int quantity) {
         try {
-            CartDetail cartDetail = cartService.addProductToCart(userId, productId, quantity);
+            // Populate product details for each cart item
+            cartService.addProductToCart(userId, productId, quantity);
             return ResponseEntity.ok().body("Product added to cart");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

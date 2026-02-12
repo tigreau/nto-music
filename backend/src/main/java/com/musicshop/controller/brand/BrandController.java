@@ -1,7 +1,7 @@
 package com.musicshop.controller.brand;
 
-import com.musicshop.model.brand.Brand;
-import com.musicshop.repository.brand.BrandRepository;
+import com.musicshop.dto.brand.BrandDTO;
+import com.musicshop.service.brand.BrandService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,18 +14,18 @@ import java.util.List;
 @RequestMapping("/api/brands")
 public class BrandController {
 
-    private final BrandRepository brandRepository;
+    private final BrandService brandService;
 
     @Autowired
-    public BrandController(BrandRepository brandRepository) {
-        this.brandRepository = brandRepository;
+    public BrandController(BrandService brandService) {
+        this.brandService = brandService;
     }
 
     /**
      * Get all brands for the filter UI sidebar.
      */
     @GetMapping
-    public ResponseEntity<List<Brand>> getAllBrands() {
-        return ResponseEntity.ok(brandRepository.findAll());
+    public ResponseEntity<List<BrandDTO>> getAllBrands() {
+        return ResponseEntity.ok(brandService.findAll());
     }
 }

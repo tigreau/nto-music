@@ -11,7 +11,7 @@ public interface CategoryService {
 
     List<Category> findAll();
 
-    Category createCategory(Category category);
+    Category createCategory(Category category, Long parentId);
 
     Optional<Category> findById(Long id);
 

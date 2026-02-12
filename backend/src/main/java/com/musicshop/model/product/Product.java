@@ -5,6 +5,7 @@ import com.musicshop.model.brand.Brand;
 import com.musicshop.model.category.Category;
 
 import javax.persistence.*;
+import javax.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,18 +16,26 @@ import java.util.List;
 public class Product extends BaseModel<Long> {
 
     @Column(nullable = false)
+    @NotBlank(message = "Product name is required.")
+    @Pattern(regexp = "^[a-zA-Z0-9 ]+$", message = "Product name contains invalid characters.")
     private String name;
 
     @Column(length = 2000)
+    @NotBlank(message = "Product description is required.")
     private String description;
 
     @Column(nullable = false)
+    @NotNull(message = "Product price is required.")
+    @Positive(message = "Product price must be greater than 0.")
+    @DecimalMax(value = "10000.00", message = "Product price is unrealistically high.")
     private BigDecimal price;
 
+    @Min(value = 1, message = "There must be at least one product.")
     private int quantityAvailable;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @NotNull(message = "Product category is required.")
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)

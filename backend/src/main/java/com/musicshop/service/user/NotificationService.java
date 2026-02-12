@@ -27,7 +27,8 @@ public class NotificationService {
     private final UserRepository userRepository;
 
     @Autowired
-    public NotificationService(CartDetailRepository cartDetailRepository, NotificationRepository notificationRepository, UserRepository userRepository) {
+    public NotificationService(CartDetailRepository cartDetailRepository, NotificationRepository notificationRepository,
+            UserRepository userRepository) {
         this.cartDetailRepository = cartDetailRepository;
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
@@ -42,7 +43,8 @@ public class NotificationService {
 
         affectedCartDetails.forEach(cartDetail -> {
             User affectedUser = cartDetail.getCart().getUser();
-            String message = String.format("Product updated in cart: %s, Price: %s", updatedProduct.getName(), updatedProduct.getPrice());
+            String message = String.format("Product updated in cart: %s, Price: %s", updatedProduct.getName(),
+                    updatedProduct.getPrice());
             createNotification(affectedUser, message);
         });
     }
@@ -69,11 +71,11 @@ public class NotificationService {
 
         affectedCartDetails.forEach(cartDetail -> {
             User affectedUser = cartDetail.getCart().getUser();
-            String message = String.format("Price reduced for '%s' in your cart. Original Price: %s, New Price: %s", discountedProduct.getName(), originalPrice, discountedProduct.getPrice());
+            String message = String.format("Price reduced for '%s' in your cart. Original Price: %s, New Price: %s",
+                    discountedProduct.getName(), originalPrice, discountedProduct.getPrice());
             createNotification(affectedUser, message);
         });
     }
-
 
     private void createNotification(User user, String message) {
         Notification notification = new Notification();

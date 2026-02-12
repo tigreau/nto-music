@@ -1,7 +1,8 @@
 package com.musicshop.service.review;
 
 import com.musicshop.dto.review.CategoryReviewsDTO;
-import com.musicshop.dto.review.ReviewDTO;
+
+import com.musicshop.mapper.ReviewMapper;
 import com.musicshop.model.category.Category;
 import com.musicshop.model.product.Review;
 import com.musicshop.repository.category.CategoryRepository;
@@ -20,11 +21,14 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final CategoryRepository categoryRepository;
+    private final ReviewMapper reviewMapper;
 
     @Autowired
-    public ReviewService(ReviewRepository reviewRepository, CategoryRepository categoryRepository) {
+    public ReviewService(ReviewRepository reviewRepository, CategoryRepository categoryRepository,
+            ReviewMapper reviewMapper) {
         this.reviewRepository = reviewRepository;
         this.categoryRepository = categoryRepository;
+        this.reviewMapper = reviewMapper;
     }
 
     public CategoryReviewsDTO getReviewsByCategory(String categorySlug, int page, int size) {
@@ -47,25 +51,13 @@ public class ReviewService {
         Double avgRating = reviewRepository.findAverageRatingByCategoryIdIn(categoryIds);
         long totalCount = reviewRepository.countByCategoryIdIn(categoryIds);
 
-        return new CategoryReviewsDTO(
+        return reviewMapper.toCategoryReviewsDTO(
                 category.getCategoryName(),
                 avgRating != null ? Math.round(avgRating * 10.0) / 10.0 : null,
                 totalCount,
                 reviewPage.getContent().stream()
-                        .map(this::toReviewDTO)
+                        .map(reviewMapper::toReviewDTO)
                         .toList());
-    }
-
-    private ReviewDTO toReviewDTO(Review review) {
-        return new ReviewDTO(
-                review.getId(),
-                review.getUser().getFirstName() + " " + review.getUser().getLastName().charAt(0) + ".",
-                review.getRating(),
-                review.getComment(),
-                review.getProduct().getName(),
-                review.getProduct().getThumbnailUrl(),
-                review.isVerifiedPurchase(),
-                review.getDatePosted());
     }
 
     public Review createReview(Review review) {

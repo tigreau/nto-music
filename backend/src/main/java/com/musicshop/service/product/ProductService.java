@@ -2,8 +2,10 @@ package com.musicshop.service.product;
 
 import com.musicshop.discount.DiscountStrategy;
 import com.musicshop.discount.DiscountStrategyFactory;
-import com.musicshop.dto.product.ProductDTOFactory;
+import com.musicshop.discount.DiscountType;
+import com.musicshop.mapper.ProductMapper;
 import com.musicshop.dto.product.SimpleProductDTO;
+import com.musicshop.model.product.ProductSortType;
 import com.musicshop.event.product.ProductDeletionEvent;
 import com.musicshop.event.product.ProductDiscountEvent;
 import com.musicshop.model.cart.CartDetail;
@@ -14,17 +16,15 @@ import com.musicshop.repository.cart.CartDetailRepository;
 import com.musicshop.repository.category.CategoryRepository;
 import com.musicshop.repository.product.ProductRepository;
 import com.musicshop.specification.ProductSpecification;
-import com.musicshop.validation.product.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.context.ApplicationEventPublisher;
 
-import javax.xml.bind.ValidationException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -38,22 +38,28 @@ public class ProductService {
     private final ApplicationEventPublisher eventPublisher;
     private final DiscountStrategyFactory discountStrategyFactory;
     private final CartDetailRepository cartDetailRepository;
+    private final ProductMapper productMapper;
 
     @Autowired
     public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
             ApplicationEventPublisher eventPublisher,
             DiscountStrategyFactory discountStrategyFactory,
-            CartDetailRepository cartDetailRepository) {
+            CartDetailRepository cartDetailRepository,
+            ProductMapper productMapper) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.eventPublisher = eventPublisher;
         this.discountStrategyFactory = discountStrategyFactory;
         this.cartDetailRepository = cartDetailRepository;
+        this.productMapper = productMapper;
     }
 
     /**
      * List products with filtering, sorting, and pagination.
      */
+
+    // ... existing imports
+
     public Page<SimpleProductDTO> listProducts(String categorySlug, List<String> brandSlugs,
             BigDecimal minPrice, BigDecimal maxPrice,
             List<ProductCondition> conditions,
@@ -65,24 +71,23 @@ public class ProductService {
                 .and(ProductSpecification.hasMaxPrice(maxPrice))
                 .and(ProductSpecification.hasConditions(conditions));
 
-        Sort sorting = resolveSort(sort);
+        ProductSortType sortType = ProductSortType.fromValue(sort).orElse(ProductSortType.RECOMMENDED);
+        Sort sorting = resolveSort(sortType);
         Pageable pageable = PageRequest.of(page, size, sorting);
 
         return productRepository.findAll(spec, pageable)
-                .map(ProductDTOFactory::createSimpleProductDTO);
+                .map(productMapper::toSimpleProductDTO);
     }
 
-    private Sort resolveSort(String sort) {
-        if (sort == null)
-            sort = "recommended";
-        switch (sort) {
-            case "price_asc":
+    private Sort resolveSort(ProductSortType sortType) {
+        switch (sortType) {
+            case PRICE_ASC:
                 return Sort.by(Sort.Direction.ASC, "price");
-            case "price_desc":
+            case PRICE_DESC:
                 return Sort.by(Sort.Direction.DESC, "price");
-            case "newest":
+            case NEWEST:
                 return Sort.by(Sort.Direction.DESC, "createdAt");
-            case "recommended":
+            case RECOMMENDED:
             default:
                 return Sort.by(
                         Sort.Order.desc("isPromoted"),
@@ -94,14 +99,7 @@ public class ProductService {
         return productRepository.findAll();
     }
 
-    public Product createProduct(Product product) throws ValidationException {
-        ProductValidator validator = new CategoryValidationDecorator(
-                new QuantityAvailableValidationDecorator(
-                        new DescriptionValidationDecorator(
-                                new PriceValidationDecorator(
-                                        new NameValidationDecorator(
-                                                new BasicProductValidator())))));
-        validator.validate(product);
+    public Product createProduct(Product product) {
 
         // Handle category logic
         product.setCategory(categoryRepository.findById(product.getCategory().getId())
@@ -164,7 +162,10 @@ public class ProductService {
     public Optional<Product> applyDiscount(Long productId, String discountType) {
         return productRepository.findById(productId).map(product -> {
             BigDecimal originalPrice = product.getPrice();
-            DiscountStrategy discountStrategy = discountStrategyFactory.getDiscountStrategy(discountType);
+            // validate discount type
+            DiscountType type = DiscountType.fromValue(discountType)
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown discount type: " + discountType));
+            DiscountStrategy discountStrategy = discountStrategyFactory.getDiscountStrategy(type.getValue());
             BigDecimal discountedPrice = discountStrategy.applyDiscount(product);
             product.setPrice(discountedPrice);
             Product savedProduct = productRepository.save(product);

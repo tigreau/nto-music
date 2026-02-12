@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public class CartItemDTO {
     private Long id;
     private CartProductDTO product;
-    private int quantity;
+    private Integer quantity;
     private BigDecimal subTotal;
 
     public CartItemDTO() {
@@ -27,11 +27,11 @@ public class CartItemDTO {
         this.product = product;
     }
 
-    public int getQuantity() {
+    public Integer getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 

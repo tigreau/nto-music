@@ -35,11 +35,7 @@ public class CategoryController {
             @RequestBody Category category,
             @RequestParam(required = false) Long parentId) {
 
-        if (parentId != null) {
-            categoryService.findById(parentId).ifPresent(category::setParentCategory);
-        }
-
-        Category createdCategory = categoryService.createCategory(category);
+        Category createdCategory = categoryService.createCategory(category, parentId);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
     }
 

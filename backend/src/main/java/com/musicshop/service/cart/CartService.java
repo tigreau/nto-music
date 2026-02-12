@@ -68,11 +68,9 @@ public class CartService {
     }
 
     public List<CartDetail> listCartDetails(Long cartId) {
-        return cartRepository.findById(cartId).map(cart -> {
-            List<CartDetail> cartDetails = cartDetailRepository.findAll();
-            cartDetails.removeIf(detail -> !detail.getCart().getId().equals(cartId));
-            return cartDetails;
-        }).orElseThrow(() -> new RuntimeException("Cart not found"));
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+        return cartDetailRepository.findByCart(cart);
     }
 
     public CartDetail updateCartDetail(Long detailId, int newQuantity) {
