@@ -1,7 +1,7 @@
 package com.musicshop.dto.product;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.musicshop.model.product.ProductCondition;
-
 import java.math.BigDecimal;
 
 public class SimpleProductDTO {
@@ -95,6 +95,7 @@ public class SimpleProductDTO {
         this.thumbnailUrl = thumbnailUrl;
     }
 
+    @JsonProperty("isPromoted")
     public boolean isPromoted() {
         return isPromoted;
     }

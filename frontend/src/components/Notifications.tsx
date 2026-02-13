@@ -1,98 +1,145 @@
-import { useState, useEffect } from 'react';
-import { X, Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { useCart } from "@/context/CartContext";
+import React from 'react';
+import { Bell, Check, Trash2, Loader2 } from 'lucide-react';
+import { useNotifications } from '../hooks/useNotifications';
+import { Button } from './ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import { cn } from '@/lib/utils'; // Assuming utils exists (standard shadcn/ui)
 
-interface Notification {
-    id: number;
-    message: string;
-    timestamp: string;
+interface NotificationsProps {
+    isAuthenticated: boolean;
 }
 
-const Notifications = () => {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const navigate = useNavigate();
-    const { refreshCart } = useCart();
+const timeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
-    useEffect(() => {
-        // Poll for notifications every 3 seconds
-        const fetchNotifications = () => {
-            console.log("Checking for notifications...");
-            // Hardcoded user ID 1 for now, similar to cart
-            fetch('/api/notifications/user/1')
-                .then(res => {
-                    if (res.ok) return res.json();
-                    return [];
-                })
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        // If we have new notifications (or just any notifications), refresh the cart
-                        // In a real app, we'd diff the lists, but refreshing on every poll with data is okay for now
-                        // or better: check if data length > previous length
-                        // For simplicity, if we receive any notifications, we refresh the cart config
-                        // knowing that notifications are often about cart updates.
-                        if (data.length > 0) {
-                            refreshCart();
-                        }
-                        console.log("Notifications received:", data);
-                        setNotifications(data);
-                    }
-                })
-                .catch(err => console.error("Failed to fetch notifications", err));
-        };
+function formatTimeAgo(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
 
-        fetchNotifications();
-        const interval = setInterval(fetchNotifications, 3000);
-        return () => clearInterval(interval);
-    }, []); // Removed refreshCart dependnecy to avoid loop if it changes often, though it shouldn't.
+    const diffInSeconds = (date.getTime() - now.getTime()) / 1000;
 
-    const dismissNotification = (e: React.MouseEvent, id: number) => {
-        e.stopPropagation(); // Prevent triggering the card click
-        fetch(`/api/notifications/${id}`, { method: 'DELETE' })
-            .then(res => {
-                if (res.ok) {
-                    setNotifications(prev => prev.filter(n => n.id !== id));
-                }
-            })
-            .catch(err => console.error("Failed to delete notification", err));
-    };
+    if (diffInSeconds > -60) return 'just now';
+    if (diffInSeconds > -3600) return timeFormatter.format(Math.round(diffInSeconds / 60), 'minute');
+    if (diffInSeconds > -86400) return timeFormatter.format(Math.round(diffInSeconds / 3600), 'hour');
+    return timeFormatter.format(Math.round(diffInSeconds / 86400), 'day');
+}
 
-    const handleNotificationClick = () => {
-        navigate('/cart');
-    };
+export const Notifications: React.FC<NotificationsProps> = ({ isAuthenticated }) => {
+    const {
+        notifications,
+        unreadCount,
+        connectionStatus,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification
+    } = useNotifications(isAuthenticated);
 
-    if (notifications.length === 0) return null;
+    if (!isAuthenticated) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-md w-full px-4">
-            {notifications.map(notification => (
-                <div
-                    key={notification.id}
-                    className="bg-white dark:bg-zinc-950 border border-border shadow-xl rounded-lg p-4 flex items-start gap-3 animate-in slide-in-from-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
-                    onClick={handleNotificationClick}
-                >
-                    <div className="bg-primary/10 p-2 rounded-full flex-shrink-0">
-                        <Bell className="w-4 h-4 text-primary" />
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-white/80 hover:text-white hover:bg-white/10">
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white pointer-events-none">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                    <span className="sr-only">Notifications</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 max-h-[500px] overflow-y-auto">
+                <div className="flex items-center justify-between px-2 py-1.5 sticky top-0 bg-popover z-10 border-b">
+                    <DropdownMenuLabel className="px-0 py-0">Notifications</DropdownMenuLabel>
+                    <div className="flex gap-2 items-center">
+                        {connectionStatus === 'connecting' && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground title='Connecting...'" />}
+                        {unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto px-2 py-0.5 text-xs text-muted-foreground hover:text-primary"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    markAllAsRead();
+                                }}
+                            >
+                                Mark all read
+                            </Button>
+                        )}
                     </div>
-                    <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(notification.timestamp).toLocaleString()}
-                        </p>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 -mt-1 -mr-1"
-                        onClick={(e) => dismissNotification(e, notification.id)}
-                    >
-                        <X className="w-4 h-4" />
-                    </Button>
                 </div>
-            ))}
-        </div>
+
+                {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                        No notifications
+                    </div>
+                ) : (
+                    <div className="py-1">
+                        {notifications.map(notification => (
+                            <DropdownMenuItem
+                                key={notification.id}
+                                className={cn(
+                                    "flex flex-col gap-1 p-3 cursor-default items-start focus:bg-accent focus:text-accent-foreground",
+                                    !notification.read && "bg-accent/10 border-l-2 border-primary"
+                                )}
+                                onSelect={(e) => e.preventDefault()}
+                            >
+                                <div className="flex items-start justify-between gap-2 w-full">
+                                    <p className={cn("leading-snug text-sm", !notification.read && "font-medium")}>
+                                        {notification.message}
+                                    </p>
+                                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {/* Hover actions might be tricky in dropdown, so always show or show on hover of item? 
+                                          DropdownMenuItem handles focus state. */}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between w-full mt-1">
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {formatTimeAgo(notification.timestamp)}
+                                    </span>
+                                    <div className="flex gap-1">
+                                        {!notification.read && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    markAsRead(notification.id);
+                                                }}
+                                                title="Mark as read"
+                                            >
+                                                <Check className="h-3 w-3" />
+                                                <span className="sr-only">Mark read</span>
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteNotification(notification.id);
+                                            }}
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                            <span className="sr-only">Delete</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DropdownMenuItem>
+                        ))}
+                    </div>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 };
-
-export default Notifications;

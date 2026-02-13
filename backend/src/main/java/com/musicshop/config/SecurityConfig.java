@@ -45,6 +45,9 @@ public class SecurityConfig {
                 .antMatchers(HttpMethod.GET, "/api/brands/**").permitAll()
                 // Swagger UI
                 .antMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                // SSE (authenticated, but might need specific config for event stream if using
+                // cookies? No, cookies work fine)
+                .antMatchers("/api/notifications/**").authenticated() // Explicitly state it
                 // Everything else requires authentication
                 .anyRequest().authenticated()
                 .and()

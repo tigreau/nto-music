@@ -5,6 +5,7 @@ import com.musicshop.dto.review.ReviewDTO;
 import com.musicshop.model.product.Review;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ReviewMapper {
@@ -15,7 +16,7 @@ public interface ReviewMapper {
     ReviewDTO toReviewDTO(Review review);
 
     default CategoryReviewsDTO toCategoryReviewsDTO(String categoryName, Double averageRating, long totalCount,
-            java.util.List<ReviewDTO> reviews) {
-        return new com.musicshop.dto.review.CategoryReviewsDTO(categoryName, averageRating, totalCount, reviews);
+            List<ReviewDTO> reviews) {
+        return new CategoryReviewsDTO(categoryName, averageRating, totalCount, reviews);
     }
 }

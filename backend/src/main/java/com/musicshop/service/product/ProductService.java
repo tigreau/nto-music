@@ -5,6 +5,7 @@ import com.musicshop.discount.DiscountStrategyFactory;
 import com.musicshop.discount.DiscountType;
 import com.musicshop.mapper.ProductMapper;
 import com.musicshop.dto.product.SimpleProductDTO;
+import com.musicshop.dto.product.DetailedProductDTO;
 import com.musicshop.model.product.ProductSortType;
 import com.musicshop.event.product.ProductDeletionEvent;
 import com.musicshop.event.product.ProductDiscountEvent;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@Transactional(readOnly = true)
 public class ProductService {
 
     private final ProductRepository productRepository;
@@ -99,20 +102,27 @@ public class ProductService {
         return productRepository.findAll();
     }
 
-    public Product createProduct(Product product) {
+    @Transactional
+    public DetailedProductDTO createProduct(Product product) {
 
         // Handle category logic
         product.setCategory(categoryRepository.findById(product.getCategory().getId())
                 .orElseThrow(() -> new RuntimeException("Category not found")));
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        return productMapper.toDetailedProductDTO(savedProduct);
     }
 
     public Optional<Product> getProductById(Long id) {
         return productRepository.findById(id);
     }
 
-    public Optional<Product> updateProduct(Long id, Product productDetails) {
+    public Optional<DetailedProductDTO> getDetailedProductById(Long id) {
+        return productRepository.findById(id).map(productMapper::toDetailedProductDTO);
+    }
+
+    @Transactional
+    public Optional<DetailedProductDTO> updateProduct(Long id, Product productDetails) {
         return productRepository.findById(id).map(product -> {
             product.setName(productDetails.getName());
             product.setDescription(productDetails.getDescription());
@@ -123,17 +133,19 @@ public class ProductService {
 
             Product updatedProduct = productRepository.save(product);
             eventPublisher.publishEvent(new ProductUpdateEvent(this, updatedProduct));
-            return updatedProduct;
+            return productMapper.toDetailedProductDTO(updatedProduct);
         });
     }
 
-    public Optional<Product> partialUpdateProduct(Long id, Map<String, Object> updates) {
+    @Transactional
+    public Optional<DetailedProductDTO> partialUpdateProduct(Long id,
+            Map<String, Object> updates) {
         return productRepository.findById(id).map(product -> {
             applyPartialUpdates(product, updates);
 
             Product updatedProduct = productRepository.save(product);
             eventPublisher.publishEvent(new ProductUpdateEvent(this, updatedProduct));
-            return updatedProduct;
+            return productMapper.toDetailedProductDTO(updatedProduct);
         });
     }
 
@@ -146,6 +158,7 @@ public class ProductService {
         }
     }
 
+    @Transactional
     public void deleteProduct(Long id) {
         Optional<Product> productOpt = productRepository.findById(id);
         if (productOpt.isPresent()) {
@@ -159,7 +172,8 @@ public class ProductService {
         }
     }
 
-    public Optional<Product> applyDiscount(Long productId, String discountType) {
+    @Transactional
+    public Optional<DetailedProductDTO> applyDiscount(Long productId, String discountType) {
         return productRepository.findById(productId).map(product -> {
             BigDecimal originalPrice = product.getPrice();
             // validate discount type
@@ -170,7 +184,7 @@ public class ProductService {
             product.setPrice(discountedPrice);
             Product savedProduct = productRepository.save(product);
             eventPublisher.publishEvent(new ProductDiscountEvent(savedProduct, originalPrice));
-            return savedProduct;
+            return productMapper.toDetailedProductDTO(savedProduct);
         });
     }
 }

@@ -1,5 +1,6 @@
 package com.musicshop.model.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.musicshop.model.BaseModel;
 import com.musicshop.model.order.UserOrder;
 import com.musicshop.model.product.Review;
@@ -74,7 +75,7 @@ public class User extends BaseModel<Long> {
         this.password = password;
     }
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     public Set<UserAddress> getUserAddresses() {
         return userAddresses;
     }
@@ -83,7 +84,7 @@ public class User extends BaseModel<Long> {
         this.userAddresses = userAddresses;
     }
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     public Set<UserOrder> getOrders() {
         return orders;
     }
@@ -92,7 +93,7 @@ public class User extends BaseModel<Long> {
         this.orders = orders;
     }
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     public Set<Review> getReviews() {
         return reviews;
     }
@@ -101,7 +102,7 @@ public class User extends BaseModel<Long> {
         this.reviews = reviews;
     }
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     public Set<Notification> getNotifications() {
         return notifications;
     }

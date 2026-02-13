@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
-import { getToken } from "@/api/client";
 
 interface ProductData {
     id: number;
@@ -31,10 +30,9 @@ const Product = ({ product, onProductClick, isAdmin }: ProductProps) => {
             return;
         }
 
-        const token = getToken();
-        fetch(`/api/carts/1/products/${productId}?quantity=${quantity}`, {
+        fetch(`/api/carts/my/products/${productId}?quantity=${quantity}`, {
             method: 'POST',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            credentials: 'include'
         })
             .then(response => {
                 if (response.ok) {

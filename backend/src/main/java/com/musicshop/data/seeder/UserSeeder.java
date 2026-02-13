@@ -62,6 +62,21 @@ public class UserSeeder implements DataSeeder {
         adminCart.setUser(admin);
         adminCart.setDateCreated(LocalDateTime.now());
         cartRepository.save(adminCart);
+
+        // Second customer user (for testing cart isolation)
+        User customer2 = new User();
+        customer2.setFirstName("Jane");
+        customer2.setLastName("Smith");
+        customer2.setEmail("jane.smith@example.com");
+        customer2.setPhoneNumber("5551234567");
+        customer2.setPassword(passwordEncoder.encode("password123"));
+        customer2.setRole(UserRole.CUSTOMER);
+        userRepository.save(customer2);
+
+        Cart customer2Cart = new Cart();
+        customer2Cart.setUser(customer2);
+        customer2Cart.setDateCreated(LocalDateTime.now());
+        cartRepository.save(customer2Cart);
     }
 
     public User getDefaultUser() {

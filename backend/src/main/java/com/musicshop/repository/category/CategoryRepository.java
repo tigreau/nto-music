@@ -2,6 +2,7 @@ package com.musicshop.repository.category;
 
 import com.musicshop.model.category.Category;
 
+import com.musicshop.dto.category.CategoryDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,13 +16,13 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
                         + "FROM Category c LEFT JOIN Product p ON p.category = c "
                         + "WHERE c.parentCategory IS NULL "
                         + "GROUP BY c.id, c.categoryName, c.slug")
-        List<com.musicshop.dto.category.CategoryDTO> findAllWithProductCount();
+        List<CategoryDTO> findAllWithProductCount();
 
         @Query("SELECT new com.musicshop.dto.category.CategoryDTO(c.id, c.categoryName, c.slug, COUNT(p)) "
                         + "FROM Category c LEFT JOIN Product p ON p.category = c "
                         + "WHERE c.parentCategory = :parent "
                         + "GROUP BY c.id, c.categoryName, c.slug")
-        List<com.musicshop.dto.category.CategoryDTO> findSubcategoriesWithProductCount(
+        List<CategoryDTO> findSubcategoriesWithProductCount(
                         @Param("parent") Category parent);
 
         Optional<Category> findByCategoryName(String categoryName);

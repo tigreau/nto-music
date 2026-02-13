@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { User, Save, Mail, Phone } from 'lucide-react';
-import { getStoredUser, getToken } from '@/api/client';
+import { getStoredUser } from '@/api/client';
 
 interface UserData {
     firstName: string;
@@ -18,9 +18,8 @@ const UserProfilePage = () => {
     const customerId = storedUser?.userId;
 
     useEffect(() => {
-        const token = getToken();
         fetch(`/api/users/${customerId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            credentials: 'include'
         })
             .then(response => response.json())
             .then(data => setUser(data))
@@ -33,13 +32,12 @@ const UserProfilePage = () => {
 
     const saveChanges = () => {
         setIsSaving(true);
-        const token = getToken();
         fetch(`/api/users/${customerId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify(user)
         })
             .then(response => {

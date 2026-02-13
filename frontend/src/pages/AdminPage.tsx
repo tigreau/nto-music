@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Shield, Plus, Save, Trash2, Tag, FolderPlus } from 'lucide-react';
-import { getToken } from '@/api/client';
 
 interface Category {
     id: number;
@@ -73,13 +72,12 @@ const AdminPage = () => {
             return;
         }
 
-        const token = getToken();
         fetch(`/api/categories?parentId=${selectedParentId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
+            credentials: 'include',
             body: JSON.stringify({
                 categoryName: newSubcategoryName
             })
@@ -112,13 +110,12 @@ const AdminPage = () => {
             return;
         }
 
-        const token = getToken();
         fetch('/api/products', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
+            credentials: 'include',
             body: JSON.stringify(newProduct)
         })
             .then(response => {
@@ -149,13 +146,12 @@ const AdminPage = () => {
     };
 
     const handleEdit = (id: number, updatedProduct: Partial<Product>) => {
-        const token = getToken();
         fetch(`/api/products/${id}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
+            credentials: 'include',
             body: JSON.stringify(updatedProduct)
         })
             .then(response => {
@@ -170,10 +166,9 @@ const AdminPage = () => {
 
     const deleteProduct = (id: number) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
-            const token = getToken();
             fetch(`/api/products/${id}`, {
                 method: 'DELETE',
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                credentials: 'include'
             })
                 .then(response => {
                     if (response.ok) {
@@ -187,10 +182,9 @@ const AdminPage = () => {
     };
 
     const applyDiscount = (id: number, discountType: string) => {
-        const token = getToken();
         fetch(`/api/products/${id}/apply-discount?discountType=${discountType}`, {
             method: 'PATCH',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            credentials: 'include'
         })
             .then(response => {
                 if (response.ok) {

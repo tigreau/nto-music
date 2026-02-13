@@ -1,6 +1,7 @@
 package com.musicshop.model.product;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 public enum ProductSortType {
     PRICE_ASC("price_asc"),
@@ -18,7 +19,7 @@ public enum ProductSortType {
         return value;
     }
 
-    public static java.util.Optional<ProductSortType> fromValue(String value) {
+    public static Optional<ProductSortType> fromValue(String value) {
         return Arrays.stream(values())
                 .filter(type -> type.value.equalsIgnoreCase(value))
                 .findFirst();

@@ -1,6 +1,7 @@
 package com.musicshop.discount;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 public enum DiscountType {
     FIXED_AMOUNT("Fixed Amount"),
@@ -16,7 +17,7 @@ public enum DiscountType {
         return value;
     }
 
-    public static java.util.Optional<DiscountType> fromValue(String value) {
+    public static Optional<DiscountType> fromValue(String value) {
         return Arrays.stream(values())
                 .filter(type -> type.value.equalsIgnoreCase(value))
                 .findFirst();

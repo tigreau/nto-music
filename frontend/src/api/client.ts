@@ -2,18 +2,20 @@ import { ProductFilters, PageResponse, Product, DetailedProduct, Brand, Category
 
 const API_BASE = '/api';
 
-// ─── Token helpers ───────────────────────────────────────────────
-export function getToken(): string | null {
-    return localStorage.getItem('token');
+// ─── User storage (non-sensitive display info only) ──────────────
+export interface AuthUser {
+    userId: number;
+    email: string;
+    firstName: string;
+    role: string;
 }
 
-export function setToken(token: string) {
-    localStorage.setItem('token', token);
-}
-
-export function clearToken() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+export interface AuthResponse {
+    token: string | null;
+    userId: number;
+    email: string;
+    firstName: string;
+    role: string;
 }
 
 export function getStoredUser(): AuthUser | null {
@@ -25,33 +27,21 @@ export function setStoredUser(user: AuthUser) {
     localStorage.setItem('user', JSON.stringify(user));
 }
 
-// ─── Types ───────────────────────────────────────────────────────
-export interface AuthUser {
-    userId: number;
-    email: string;
-    firstName: string;
-    role: string;
+export function clearStoredUser() {
+    localStorage.removeItem('user');
 }
 
-export interface AuthResponse {
-    token: string;
-    userId: number;
-    email: string;
-    firstName: string;
-    role: string;
-}
-
-// ─── Core fetch ──────────────────────────────────────────────────
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-    const token = getToken();
+// ─── Core fetch (cookie-based auth) ─────────────────────────────
+export async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {
         ...(options?.headers as Record<string, string> || {}),
     };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
 
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include',
+    });
     if (!response.ok) {
         const text = await response.text();
         throw new Error(text || `API error: ${response.status} ${response.statusText}`);
@@ -70,7 +60,6 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 // ─── Auth ────────────────────────────────────────────────────────
 export async function login(email: string, password: string): Promise<AuthResponse> {
     const res = await postJson<AuthResponse>(`${API_BASE}/auth/login`, { email, password });
-    setToken(res.token);
     setStoredUser({ userId: res.userId, email: res.email, firstName: res.firstName, role: res.role });
     return res;
 }
@@ -81,9 +70,31 @@ export async function register(
     const res = await postJson<AuthResponse>(`${API_BASE}/auth/register`, {
         firstName, lastName, email, password,
     });
-    setToken(res.token);
     setStoredUser({ userId: res.userId, email: res.email, firstName: res.firstName, role: res.role });
     return res;
+}
+
+export async function logout(): Promise<void> {
+    try {
+        await fetch(`${API_BASE}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+    } finally {
+        clearStoredUser();
+    }
+}
+
+export async function verifySession(): Promise<AuthUser | null> {
+    try {
+        const res = await fetchJson<AuthResponse>(`${API_BASE}/auth/me`);
+        const user = { userId: res.userId, email: res.email, firstName: res.firstName, role: res.role };
+        setStoredUser(user);
+        return user;
+    } catch {
+        clearStoredUser();
+        return null;
+    }
 }
 
 // ─── Products ────────────────────────────────────────────────────
@@ -118,3 +129,4 @@ export function fetchCategoryReviews(slug: string, page = 0, size = 10): Promise
 export function fetchBrands(): Promise<Brand[]> {
     return fetchJson(`${API_BASE}/brands`);
 }
+

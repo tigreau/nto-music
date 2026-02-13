@@ -8,8 +8,11 @@ import com.musicshop.repository.cart.CartDetailRepository;
 import com.musicshop.repository.cart.CartRepository;
 import com.musicshop.repository.product.ProductRepository;
 import com.musicshop.repository.user.UserRepository;
+import com.musicshop.dto.cart.CartItemDTO;
+import com.musicshop.mapper.CartMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,14 +25,17 @@ public class CartService {
     private final CartDetailRepository cartDetailRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final CartMapper cartMapper;
 
     @Autowired
     public CartService(CartRepository cartRepository, CartDetailRepository cartDetailRepository,
-            ProductRepository productRepository, UserRepository userRepository) {
+            ProductRepository productRepository, UserRepository userRepository,
+            CartMapper cartMapper) {
         this.cartRepository = cartRepository;
         this.cartDetailRepository = cartDetailRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.cartMapper = cartMapper;
     }
 
     public Cart createNewCart(User user) {
@@ -67,16 +73,33 @@ public class CartService {
         return cartDetailRepository.findByCartAndProduct(cart, product);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<CartItemDTO> getCartItemDTO(Long cartId, Long productId) {
+        return getCartDetail(cartId, productId).map(cartMapper::toCartItemDTO);
+    }
+
     public List<CartDetail> listCartDetails(Long cartId) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
         return cartDetailRepository.findByCart(cart);
     }
 
+    @Transactional(readOnly = true)
+    public List<CartItemDTO> listCartItemDTOs(Long cartId) {
+        List<CartDetail> details = listCartDetails(cartId);
+        return cartMapper.toCartItemDTOs(details);
+    }
+
     public CartDetail updateCartDetail(Long detailId, int newQuantity) {
         CartDetail cartDetail = cartDetailRepository.findById(detailId).orElseThrow();
         cartDetail.setQuantity(newQuantity);
         return cartDetailRepository.save(cartDetail);
+    }
+
+    @Transactional
+    public CartItemDTO updateCartItemDTO(Long detailId, int newQuantity) {
+        CartDetail updatedDetail = updateCartDetail(detailId, newQuantity);
+        return cartMapper.toCartItemDTO(updatedDetail);
     }
 
     public void deleteCartDetail(Long detailId) {

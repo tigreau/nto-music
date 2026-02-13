@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getToken } from '@/api/client';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getStoredUser } from '@/api/client';
 
 interface CartItem {
     id: number;
@@ -18,13 +18,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-    // Hardcoded cart ID 1 as per existing implementation
     const fetchCart = async () => {
         try {
-            const token = getToken();
-            if (!token) return;
-            const response = await fetch('/api/carts/1/details', {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const user = getStoredUser();
+            if (!user) return;
+            const response = await fetch('/api/carts/my/details', {
+                credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();
@@ -55,3 +54,4 @@ export const useCart = () => {
     }
     return context;
 };
+

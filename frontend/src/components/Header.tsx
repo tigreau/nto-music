@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import { useCart } from "@/context/CartContext"
+import { Notifications } from "./Notifications"
+
+// ... imports
 
 interface HeaderProps {
   isAuthenticated?: boolean
   isAdmin?: boolean
   onLogout?: () => void
-  // cartItemCount prop is deprecated in favor of CartContext
 }
 
 export function Header({ isAuthenticated, isAdmin, onLogout }: HeaderProps) {
@@ -40,6 +42,8 @@ export function Header({ isAuthenticated, isAdmin, onLogout }: HeaderProps) {
           <div className="flex items-center gap-1">
             {isAuthenticated && (
               <>
+                <Notifications isAuthenticated={isAuthenticated} />
+
                 <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/10" asChild>
                   <Link to="/user-profile">
                     <User className="w-5 h-5" />

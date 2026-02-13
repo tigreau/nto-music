@@ -12,11 +12,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
@@ -60,6 +62,7 @@ public class ReviewService {
                         .toList());
     }
 
+    @Transactional
     public Review createReview(Review review) {
         // Auto-set the category from the product
         if (review.getProduct() != null && review.getProduct().getCategory() != null) {

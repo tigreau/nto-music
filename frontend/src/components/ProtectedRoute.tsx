@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { ReactNode } from 'react';
-import { getToken, getStoredUser } from '@/api/client';
+import { getStoredUser } from '@/api/client';
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -8,11 +8,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
-    const token = getToken();
     const user = getStoredUser();
     const location = useLocation();
 
-    if (!token) {
+    if (!user) {
         return <Navigate to="/login" state={{ from: location }} />;
     }
 

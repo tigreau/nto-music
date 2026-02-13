@@ -6,34 +6,33 @@ import AdminPage from './pages/AdminPage';
 import UserProfilePage from './pages/UserProfilePage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import Notifications from "./components/Notifications";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
-import { getToken, getStoredUser, clearToken } from "./api/client";
+import { getStoredUser, logout as apiLogout, verifySession } from "./api/client";
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
-        const token = getToken();
-        const user = getStoredUser();
-        setIsAuthenticated(!!token);
-        setIsAdmin(user?.role === 'ADMIN');
+        // Single source of truth: backend validation
+        verifySession().then(user => {
+            setIsAuthenticated(!!user);
+            setIsAdmin(user?.role === 'ADMIN');
+        });
     }, []);
 
-    const handleLogout = () => {
-        clearToken();
+    const handleLogout = async () => {
+        await apiLogout();
         setIsAuthenticated(false);
         setIsAdmin(false);
     };
 
     return (
         <Router>
-            <CartProvider>
+            <CartProvider key={isAuthenticated ? 'auth' : 'guest'}>
                 <div className="min-h-screen flex flex-col bg-background">
-                    <Notifications />
                     <Header
                         isAuthenticated={isAuthenticated}
                         isAdmin={isAdmin}

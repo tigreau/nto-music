@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { getToken } from '@/api/client';
 import { useCart } from "@/context/CartContext";
 import { Hero } from '@/components/Hero';
 import { FilterSidebar } from '@/components/FilterSidebar';
@@ -69,9 +68,8 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
 
     const handleProductClick = (product: Product) => {
         setSelectedProduct(product);
-        const token = getToken();
         fetch(`/api/products/${product.id}`, {
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            credentials: 'include'
         })
             .then(r => r.json())
             .then(data => setDetailedProduct(data))
@@ -84,10 +82,9 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
     };
 
     const handleAddToCart = (productId: number, quantity: number) => {
-        const token = getToken();
-        fetch(`/api/carts/1/products/${productId}?quantity=${quantity}`, {
+        fetch(`/api/carts/my/products/${productId}?quantity=${quantity}`, {
             method: 'POST',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            credentials: 'include'
         })
             .then(response => {
                 if (response.ok) {
