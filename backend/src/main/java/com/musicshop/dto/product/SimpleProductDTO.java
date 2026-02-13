@@ -103,4 +103,15 @@ public class SimpleProductDTO {
     public void setPromoted(boolean promoted) {
         isPromoted = promoted;
     }
+
+    // Images
+    private java.util.List<ProductImageDTO> images;
+
+    public java.util.List<ProductImageDTO> getImages() {
+        return images;
+    }
+
+    public void setImages(java.util.List<ProductImageDTO> images) {
+        this.images = images;
+    }
 }

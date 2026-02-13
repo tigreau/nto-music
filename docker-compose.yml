@@ -27,6 +27,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/musicshop
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      APP_UPLOAD_DIR: "/app/uploads"
+    volumes:
+      - uploads-data:/app/uploads
     networks:
       - backend-net
 
@@ -40,11 +43,14 @@ services:
       - "80:80"
     depends_on:
       - api
+    volumes:
+      - uploads-data:/usr/share/nginx/html/uploads
     networks:
       - backend-net
 
 volumes:
   db-data:
+  uploads-data:
 
 
 networks:

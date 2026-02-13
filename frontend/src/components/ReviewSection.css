@@ -30,7 +30,7 @@
 .review-avg {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #f59e0b;
+    color: var(--yellow);
 }
 
 .review-count {
@@ -49,7 +49,7 @@
 }
 
 .star.filled {
-    color: #f59e0b;
+    color: var(--yellow);
 }
 
 .review-list {
@@ -86,9 +86,9 @@
 
 .verified-badge {
     font-size: 0.75rem;
-    color: #10b981;
+    color: #859900;
     font-weight: 600;
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(133, 153, 0, 0.1);
     padding: 2px 8px;
     border-radius: 4px;
 }

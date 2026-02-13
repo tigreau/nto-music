@@ -1,34 +1,30 @@
-package com.musicshop.model.product;
+package com.musicshop.dto.product;
 
-import com.musicshop.model.BaseModel;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import javax.persistence.*;
-
-@Entity
-@Table(name = "product_images")
-public class ProductImage extends BaseModel<Long> {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    @JsonIgnore
-    private Product product;
-
-    @Column(nullable = false)
+public class ProductImageDTO {
+    private Long id;
     private String url;
-
     private String altText;
-
     private boolean isPrimary;
-
     private int displayOrder;
 
-    public Product getProduct() {
-        return product;
+    public ProductImageDTO() {
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public ProductImageDTO(Long id, String url, String altText, boolean isPrimary, int displayOrder) {
+        this.id = id;
+        this.url = url;
+        this.altText = altText;
+        this.isPrimary = isPrimary;
+        this.displayOrder = displayOrder;
+    }
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getUrl() {

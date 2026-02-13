@@ -47,7 +47,7 @@ export const Notifications: React.FC<NotificationsProps> = ({ isAuthenticated })
                 <Button variant="ghost" size="icon" className="relative text-white/80 hover:text-white hover:bg-white/10">
                     <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white pointer-events-none">
+                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#dc322f] text-[10px] text-white pointer-events-none">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                     )}

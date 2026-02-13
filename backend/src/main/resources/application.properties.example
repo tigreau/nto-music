@@ -17,3 +17,9 @@ discount.fixedAmount=5.00
 # Example command to generate: openssl rand -base64 32
 jwt.secret=REPLACE_WITH_YOUR_BASE64_ENCODED_SECRET_KEY
 jwt.expiration=86400000
+
+# File Upload Configuration
+app.upload.dir=${user.home}/musicshop-uploads
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+

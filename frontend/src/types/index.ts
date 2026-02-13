@@ -35,11 +35,11 @@ export const CONDITION_LABELS: Record<ProductCondition, string> = {
 };
 
 export const CONDITION_COLORS: Record<ProductCondition, string> = {
-    NEW: '#10b981',
-    EXCELLENT: '#3b82f6',
-    VERY_GOOD: '#8b5cf6',
-    GOOD: '#f59e0b',
-    FAIR: '#ef4444',
+    NEW: '#859900',      // Solarized green
+    EXCELLENT: '#2aa198', // Solarized cyan
+    VERY_GOOD: '#268bd2', // Solarized blue
+    GOOD: '#b58900',     // Solarized yellow
+    FAIR: '#cb4b16',     // Solarized orange
 };
 
 export interface ProductFilters {

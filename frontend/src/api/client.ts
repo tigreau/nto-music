@@ -7,6 +7,7 @@ export interface AuthUser {
     userId: number;
     email: string;
     firstName: string;
+    lastName?: string;
     role: string;
 }
 
@@ -15,6 +16,7 @@ export interface AuthResponse {
     userId: number;
     email: string;
     firstName: string;
+    lastName: string;
     role: string;
 }
 
@@ -60,7 +62,7 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 // ─── Auth ────────────────────────────────────────────────────────
 export async function login(email: string, password: string): Promise<AuthResponse> {
     const res = await postJson<AuthResponse>(`${API_BASE}/auth/login`, { email, password });
-    setStoredUser({ userId: res.userId, email: res.email, firstName: res.firstName, role: res.role });
+    setStoredUser({ userId: res.userId, email: res.email, firstName: res.firstName, lastName: res.lastName, role: res.role });
     return res;
 }
 
@@ -70,7 +72,7 @@ export async function register(
     const res = await postJson<AuthResponse>(`${API_BASE}/auth/register`, {
         firstName, lastName, email, password,
     });
-    setStoredUser({ userId: res.userId, email: res.email, firstName: res.firstName, role: res.role });
+    setStoredUser({ userId: res.userId, email: res.email, firstName: res.firstName, lastName: res.lastName, role: res.role });
     return res;
 }
 
@@ -88,7 +90,7 @@ export async function logout(): Promise<void> {
 export async function verifySession(): Promise<AuthUser | null> {
     try {
         const res = await fetchJson<AuthResponse>(`${API_BASE}/auth/me`);
-        const user = { userId: res.userId, email: res.email, firstName: res.firstName, role: res.role };
+        const user = { userId: res.userId, email: res.email, firstName: res.firstName, lastName: res.lastName, role: res.role };
         setStoredUser(user);
         return user;
     } catch {

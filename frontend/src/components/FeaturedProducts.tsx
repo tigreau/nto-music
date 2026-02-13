@@ -166,7 +166,7 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-[#fdf6e3] border-2 border-[#93a1a1]">
               {sortOptions.map((option) => (
                 <DropdownMenuItem
                   key={option}
@@ -174,12 +174,13 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
                     setSortBy(option)
                     setCurrentPage(1) // Reset to first page when sorting changes
                   }}
-                  className={sortBy === option ? "bg-muted" : ""}
+                  className={sortBy === option ? "bg-[#eee8d5] text-[#073642]" : "text-[#073642] hover:bg-[#eee8d5] hover:text-[#073642]"}
                 >
                   {option}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
+
           </DropdownMenu>
         </div>
 
@@ -188,12 +189,12 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
           {paginatedProducts.map((product) => (
             <div
               key={product.id}
-              className="bg-card rounded-xl border border-border p-4 hover:shadow-lg transition-all duration-300 group cursor-pointer"
+              className="bg-[#eee8d5] rounded-xl border-2 border-[#93a1a1] p-0 overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer hover:border-[#268bd2] hover:-translate-y-1"
               onClick={() => handleProductClick(product)}
             >
               {/* Image Placeholder */}
-              <div className="aspect-square bg-muted/50 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+              <div className="aspect-square bg-[#fdf6e3] flex items-center justify-center relative overflow-hidden border-b-2 border-[#93a1a1]">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#268bd2]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
 
                 {getCategoryImage(product.categoryName) ? (
                   <img
@@ -206,30 +207,29 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
                 )}
 
                 {product.categoryName && (
-                  <Badge className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm text-foreground hover:bg-background/90">
+                  <Badge className="absolute top-2 left-2 bg-[#b58900] text-[#fdf6e3] border-[#073642] shadow-sm">
                     {product.categoryName}
                   </Badge>
                 )}
               </div>
 
               {/* Content */}
-              <div>
-                <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+              <div className="p-5">
+                <h3 className="font-bold text-[#073642] text-lg mb-1 group-hover:text-[#268bd2] transition-colors leading-tight">
                   {product.name}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                <p className="text-sm text-[#586e75] mb-4 line-clamp-2 font-medium">
                   {product.description || 'No description available'}
                 </p>
 
                 <div className="flex items-center justify-between mt-auto">
-                  <span className="font-bold text-lg text-primary">
+                  <span className="font-extrabold text-xl text-[#268bd2]">
                     {product.price ? `${product.price.toFixed(2)} EUR` : 'Price on request'}
                   </span>
                   {!isAdmin && (
                     <Button
                       size="sm"
-                      variant="secondary"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="bg-[#268bd2] text-[#fdf6e3] hover:bg-[#2aa198] shadow-sm border-2 border-[#073642]"
                       onClick={(e) => handleAddToCart(e, product.id)}
                     >
                       <ShoppingCart className="w-4 h-4" />

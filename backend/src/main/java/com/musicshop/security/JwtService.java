@@ -30,6 +30,7 @@ public class JwtService {
         claims.put("role", user.getRole().name());
         claims.put("userId", user.getId());
         claims.put("firstName", user.getFirstName());
+        claims.put("lastName", user.getLastName());
         return createToken(claims, user.getEmail());
     }
 

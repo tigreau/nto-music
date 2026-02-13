@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     @Override
-    @EntityGraph(attributePaths = { "category", "brand" })
+    @EntityGraph(attributePaths = { "category", "brand", "images" })
     Page<Product> findAll(@Nullable Specification<Product> spec, Pageable pageable);
 
     Optional<Product> findByName(String productName);

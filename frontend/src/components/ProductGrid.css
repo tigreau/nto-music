@@ -1,33 +1,39 @@
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
     flex: 1;
 }
 
 .product-card {
-    background-color: var(--card);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
+    background-color: #eee8d5;
+    /* base2 - cards darker than background */
+    border-radius: 0.5rem;
+    border: 1px solid #93a1a1;
+    /* thinner border */
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 43, 54, 0.1);
 }
 
 .product-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-    border-color: var(--ring);
+    box-shadow: 0 8px 16px rgba(0, 43, 54, 0.15);
+    border-color: #268bd2;
 }
 
 .product-card-image {
     position: relative;
-    height: 180px;
-    background-color: var(--muted);
+    height: 200px;
+    background-color: #fdf6e3;
+    /* base3 */
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    border-bottom: 1px solid #93a1a1;
+    /* thinner border */
 }
 
 .product-card-image img {
@@ -37,108 +43,114 @@
 }
 
 .product-card-placeholder {
-    font-size: 3rem;
+    font-size: 3.5rem;
     opacity: 0.3;
 }
 
 .promoted-badge {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: #000;
-    padding: 3px 8px;
+    top: 10px;
+    right: 10px;
+    background: #b58900;
+    color: #eee8d5;
+    padding: 4px 12px;
     border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    border: 1px solid #073642;
+    /* thinner border */
+    box-shadow: 0 2px 4px rgba(0, 43, 54, 0.3);
 }
 
 .product-card-body {
-    padding: 1rem;
+    padding: 1.25rem;
 }
 
 .condition-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 4px 10px;
     border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border: 1px solid;
-    margin-bottom: 0.5rem;
+    /* thinner border */
+    margin-bottom: 0.75rem;
 }
 
 .product-card-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--card-foreground);
-    line-height: 1.3;
-    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #073642;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
 }
 
 .product-card-brand {
-    font-size: 0.8rem;
-    color: var(--muted-foreground);
-    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    color: #586e75;
+    margin-bottom: 1rem;
+    font-weight: 600;
 }
 
 .product-card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 .product-card-price {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--primary);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #268bd2;
 }
 
 .add-to-cart-btn {
-    padding: 6px 12px;
-    background-color: var(--secondary);
-    border: 1px solid var(--border);
-    color: var(--secondary-foreground);
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
+    padding: 8px 14px;
+    background-color: #268bd2;
+    border: 1px solid #073642;
+    /* thinner border */
+    color: #eee8d5;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .add-to-cart-btn:hover {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-    border-color: var(--primary);
+    background-color: #2aa198;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 43, 54, 0.2);
 }
 
-/* Skeleton loading */
 .product-card.skeleton {
     pointer-events: none;
+    background-color: #eee8d5;
 }
 
 .skeleton-image {
-    height: 180px;
-    background: linear-gradient(90deg, var(--card) 25%, var(--muted) 50%, var(--card) 75%);
+    height: 200px;
+    background: linear-gradient(90deg, #eee8d5 25%, #93a1a1 50%, #eee8d5 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
 }
 
 .skeleton-text {
-    height: 14px;
-    background: linear-gradient(90deg, var(--card) 25%, var(--muted) 50%, var(--card) 75%);
+    height: 16px;
+    background: linear-gradient(90deg, #eee8d5 25%, #93a1a1 50%, #eee8d5 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: 4px;
-    margin: 1rem;
+    margin: 1.25rem;
 }
 
 .skeleton-text.short {
     width: 60%;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 @keyframes shimmer {
@@ -151,13 +163,13 @@
     }
 }
 
-/* Empty state */
 .product-grid-empty {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 300px;
-    color: var(--muted-foreground);
-    font-size: 1rem;
+    color: #586e75;
+    font-size: 1.125rem;
+    font-weight: 600;
 }

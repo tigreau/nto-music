@@ -18,5 +18,5 @@ public interface ProductMapper {
     @Mapping(target = "categoryName", source = "category.categoryName")
     DetailedProductDTO toDetailedProductDTO(Product product);
 
-    DetailedProductDTO.ProductImageDTO toProductImageDTO(ProductImage productImage);
+    com.musicshop.dto.product.ProductImageDTO toProductImageDTO(ProductImage productImage);
 }

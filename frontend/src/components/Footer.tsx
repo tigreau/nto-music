@@ -3,7 +3,7 @@ import { Facebook, Instagram, Youtube } from "lucide-react"
 
 export function Footer() {
   return (
-    <footer className="bg-[#1a1225] text-white">
+    <footer className="bg-[#002b36] text-white">
       <div className="container mx-auto px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
           {/* Brand */}
