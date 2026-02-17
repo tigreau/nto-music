@@ -8,6 +8,7 @@ import ProductModal from "@/components/ProductModal";
 import { useProducts, useBrands, useCategoryReviews, useCategories } from '@/hooks/useApi';
 import { ProductCondition, SortOption, Product } from '@/types';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import './HomePage.css';
 
 interface HomePageProps {
@@ -81,20 +82,22 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
         setDetailedProduct(null);
     };
 
-    const handleAddToCart = (productId: number, quantity: number) => {
-        fetch(`/api/carts/my/products/${productId}?quantity=${quantity}`, {
+    const handleAddToCart = (productId: number) => {
+        fetch(`/api/carts/my/products/${productId}?quantity=1`, {
             method: 'POST',
             credentials: 'include'
         })
             .then(response => {
                 if (response.ok) {
-                    alert(`Added ${quantity} item(s) to the cart.`);
+                    toast.success('Added to cart');
                     refreshCart();
                 } else {
-                    alert('Failed to add items to the cart.');
+                    return response.json().then(data => {
+                        toast.error(data.message || 'Failed to add item to cart');
+                    });
                 }
             })
-            .catch(error => console.error('Error adding items to the cart:', error));
+            .catch(error => console.error('Error adding item to cart:', error));
     };
 
     return (

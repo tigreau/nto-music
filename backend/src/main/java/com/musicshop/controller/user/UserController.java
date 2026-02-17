@@ -1,6 +1,8 @@
 package com.musicshop.controller.user;
 
-import com.musicshop.model.user.User;
+import com.musicshop.dto.user.UpdateUserRequest;
+import com.musicshop.dto.user.UserDTO;
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,15 +20,15 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<User> getUser(@PathVariable Long userId) {
+    public ResponseEntity<UserDTO> getUser(@PathVariable Long userId) {
         return userService.getUser(userId)
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<User> updateUser(@PathVariable Long userId, @RequestBody User userDetails) {
-        User updatedUser = userService.updateUser(userId, userDetails);
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long userId, @RequestBody UpdateUserRequest request) {
+        UserDTO updatedUser = userService.updateUser(userId, request);
         return ResponseEntity.ok(updatedUser);
     }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
 import AdminPage from './pages/AdminPage';
 import UserProfilePage from './pages/UserProfilePage';
 import LoginPage from './pages/LoginPage';
@@ -9,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
+import { Toaster } from "sonner";
 import { getStoredUser, logout as apiLogout, verifySession } from "./api/client";
 
 function App() {
@@ -50,6 +52,11 @@ function App() {
                                     <CartPage />
                                 </ProtectedRoute>
                             } />
+                            <Route path="/checkout" element={
+                                <ProtectedRoute>
+                                    <CheckoutPage />
+                                </ProtectedRoute>
+                            } />
                             <Route path="/admin" element={
                                 <ProtectedRoute adminOnly={true}>
                                     <AdminPage />
@@ -65,6 +72,21 @@ function App() {
                         </Routes>
                     </main>
                     <Footer />
+                    <Toaster
+                        position="bottom-right"
+                        toastOptions={{
+                            style: {
+                                background: '#eee8d5',
+                                color: '#002b36',
+                                border: '1px solid #93a1a1',
+                                fontFamily: 'Inter, system-ui, sans-serif',
+                            },
+                            classNames: {
+                                success: 'toast-success',
+                                error: 'toast-error',
+                            },
+                        }}
+                    />
                 </div>
             </CartProvider>
         </Router>

@@ -30,7 +30,7 @@ public class Product extends BaseModel<Long> {
     @DecimalMax(value = "10000.00", message = "Product price is unrealistically high.")
     private BigDecimal price;
 
-    @Min(value = 1, message = "There must be at least one product.")
+    @Min(value = 0, message = "Quantity cannot be negative.")
     private int quantityAvailable;
 
     @ManyToOne(fetch = FetchType.LAZY)

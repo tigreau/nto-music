@@ -1,5 +1,8 @@
 package com.musicshop.user;
 
+import com.musicshop.dto.user.UpdateUserRequest;
+import com.musicshop.dto.user.UserDTO;
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.model.user.User;
 import com.musicshop.repository.user.UserRepository;
 import com.musicshop.service.user.UserService;
@@ -34,13 +37,18 @@ public class UserServiceTest {
         Long userId = 1L;
         User mockUser = new User();
         mockUser.setId(userId);
+        mockUser.setFirstName("John");
+        mockUser.setLastName("Doe");
+        mockUser.setEmail("john@example.com");
+        mockUser.setPhoneNumber("123456789");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
 
-        Optional<User> result = userService.getUser(userId);
+        Optional<UserDTO> result = userService.getUser(userId);
 
         assertTrue(result.isPresent());
-        assertEquals(mockUser, result.get());
+        assertEquals(userId, result.get().getId());
+        assertEquals("John", result.get().getFirstName());
         verify(userRepository).findById(userId);
     }
 
@@ -49,7 +57,7 @@ public class UserServiceTest {
         Long userId = 1L;
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        Optional<User> result = userService.getUser(userId);
+        Optional<UserDTO> result = userService.getUser(userId);
 
         assertFalse(result.isPresent());
         verify(userRepository).findById(userId);
@@ -61,27 +69,35 @@ public class UserServiceTest {
         User existingUser = new User();
         existingUser.setId(userId);
         existingUser.setFirstName("Original");
+        existingUser.setLastName("User");
+        existingUser.setEmail("original@example.com");
+        existingUser.setPhoneNumber("000000000");
 
-        User updatedDetails = new User();
-        updatedDetails.setFirstName("Updated");
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setFirstName("Updated");
+        request.setLastName("User");
+        request.setEmail("updated@example.com");
+        request.setPhoneNumber("111111111");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User updatedUser = userService.updateUser(userId, updatedDetails);
+        UserDTO updatedUser = userService.updateUser(userId, request);
 
         assertEquals("Updated", updatedUser.getFirstName());
+        assertEquals("updated@example.com", updatedUser.getEmail());
         verify(userRepository).save(any(User.class));
     }
 
     @Test
     void updateUser_whenUserDoesNotExist() {
         Long userId = 1L;
-        User updatedDetails = new User();
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setFirstName("Updated");
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> userService.updateUser(userId, updatedDetails));
+        assertThrows(ResourceNotFoundException.class, () -> userService.updateUser(userId, request));
         verify(userRepository, never()).save(any(User.class));
     }
 }

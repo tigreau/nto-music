@@ -133,6 +133,15 @@
     --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Sonner toast - Solarized theme */
+.toast-success [data-icon] svg {
+    color: #859900 !important;
+}
+
+.toast-error [data-icon] svg {
+    color: #dc322f !important;
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;

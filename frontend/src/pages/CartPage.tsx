@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useCart } from "@/context/CartContext";
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { getCategoryImage } from "@/lib/categoryUtils";
+import { toast } from 'sonner';
 
 const CartPage = () => {
     const { cartItems, refreshCart } = useCart();
+    const navigate = useNavigate();
 
     // Refresh cart on mount to ensure prices are up to date
     useEffect(() => {
@@ -23,39 +26,23 @@ const CartPage = () => {
     }, 0);
 
     const deleteCartItem = (cartItemId: number) => {
-        if (window.confirm('Are you sure you want to delete this item from the cart?')) {
-            fetch(`/api/carts/details/${cartItemId}`, {
-                method: 'DELETE',
-                credentials: 'include'
+        fetch(`/api/carts/details/${cartItemId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        })
+            .then(response => {
+                if (response.ok) {
+                    toast.success('Item removed from cart');
+                    refreshCart();
+                } else {
+                    toast.error('Failed to remove item');
+                }
             })
-                .then(response => {
-                    if (response.ok) {
-                        alert('Cart item deleted.');
-                        refreshCart(); // Refresh context
-                    } else {
-                        alert('Failed to delete cart item.');
-                    }
-                })
-                .catch(error => console.error('Error deleting cart item:', error));
-        }
+            .catch(error => console.error('Error deleting cart item:', error));
     };
 
     const handleCheckout = () => {
-        if (window.confirm('Confirm purchase? This will clear your cart.')) {
-            fetch('/api/carts/my/clear', {
-                method: 'DELETE',
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (response.ok) {
-                        alert('Purchase successful! Thank you.');
-                        refreshCart(); // Refresh context
-                    } else {
-                        alert('Checkout failed.');
-                    }
-                })
-                .catch(error => console.error('Checkout error:', error));
-        }
+        navigate('/checkout');
     };
 
     return (

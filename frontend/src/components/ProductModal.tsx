@@ -26,7 +26,7 @@ interface Product {
 interface ProductModalProps {
     product: Product;
     onClose: () => void;
-    onAddToCart?: (productId: number, quantity: number) => void;
+    onAddToCart?: (productId: number) => void;
 }
 
 const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
@@ -43,11 +43,8 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
 
     const handleAddToCart = () => {
         if (onAddToCart) {
-            const quantity = parseInt(prompt('Enter quantity:', '1') || '0', 10);
-            if (!isNaN(quantity) && quantity > 0) {
-                onAddToCart(product.id, quantity);
-                onClose();
-            }
+            onAddToCart(product.id);
+            onClose();
         }
     };
 
@@ -183,7 +180,7 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
 
                             {/* Footer */}
                             <div className="p-6 border-t border-border bg-muted/30 flex flex-col gap-3">
-                                {onAddToCart && product.quantityAvailable !== 0 && (
+                                {onAddToCart && product.quantityAvailable !== undefined && product.quantityAvailable > 0 && (
                                     <Button
                                         onClick={handleAddToCart}
                                         className="w-full text-lg py-6 shadow-md hover:shadow-lg transition-all font-bold"
@@ -192,6 +189,12 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                         <ShoppingCart className="w-6 h-6 mr-2" />
                                         Add to Cart
                                     </Button>
+                                )}
+                                {onAddToCart && product.quantityAvailable !== undefined && product.quantityAvailable <= 0 && (
+                                    <div className="w-full text-center py-4 px-6 rounded-lg bg-destructive/10 border border-destructive/30">
+                                        <p className="text-destructive font-semibold text-lg">Out of Stock</p>
+                                        <p className="text-muted-foreground text-sm mt-1">This item is currently unavailable.</p>
+                                    </div>
                                 )}
                                 <Button
                                     onClick={onClose}

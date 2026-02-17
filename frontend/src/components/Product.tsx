@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductData {
     id: number;
@@ -15,34 +16,24 @@ interface ProductProps {
 }
 
 const Product = ({ product, onProductClick, isAdmin }: ProductProps) => {
-    const addToCart = (e: React.MouseEvent, productId: number, availableQuantity: number | undefined) => {
-        e.stopPropagation(); // Prevents the click from reaching the parent div
+    const addToCart = (e: React.MouseEvent, productId: number) => {
+        e.stopPropagation();
 
-        const quantity = parseInt(prompt('Enter quantity:', '1') || '0', 10);
-
-        if (isNaN(quantity) || quantity <= 0) {
-            alert('Please enter a valid quantity.');
-            return;
-        }
-
-        if (availableQuantity && quantity > availableQuantity) {
-            alert(`Only ${availableQuantity} items available.`);
-            return;
-        }
-
-        fetch(`/api/carts/my/products/${productId}?quantity=${quantity}`, {
+        fetch(`/api/carts/my/products/${productId}?quantity=1`, {
             method: 'POST',
             credentials: 'include'
         })
             .then(response => {
                 if (response.ok) {
-                    alert(`Added ${quantity} items to the cart.`);
+                    toast.success('Added to cart');
                 } else {
-                    alert('Failed to add items to the cart.');
+                    return response.json().then(data => {
+                        toast.error(data.message || 'Failed to add item to cart');
+                    });
                 }
             })
             .catch(error => {
-                console.error('Error adding items to the cart:', error);
+                console.error('Error adding item to cart:', error);
             });
     };
 
@@ -65,7 +56,7 @@ const Product = ({ product, onProductClick, isAdmin }: ProductProps) => {
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={(e) => addToCart(e, product.id, product.quantityAvailable)}
+                    onClick={(e) => addToCart(e, product.id)}
                 >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Add to Cart

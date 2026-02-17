@@ -45,8 +45,14 @@ export async function fetchJson<T>(url: string, options?: RequestInit): Promise<
         credentials: 'include',
     });
     if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `API error: ${response.status} ${response.statusText}`);
+        let message = `API error: ${response.status} ${response.statusText}`;
+        try {
+            const data = await response.json();
+            message = data.message || message;
+        } catch {
+            // response wasn't JSON, use default message
+        }
+        throw new Error(message);
     }
     return response.json();
 }

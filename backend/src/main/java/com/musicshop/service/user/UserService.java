@@ -1,5 +1,8 @@
 package com.musicshop.service.user;
 
+import com.musicshop.dto.user.UpdateUserRequest;
+import com.musicshop.dto.user.UserDTO;
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.model.user.User;
 import com.musicshop.repository.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,19 +20,32 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public Optional<User> getUser(Long userId) {
-        return userRepository.findById(userId);
+    public Optional<UserDTO> getUser(Long userId) {
+        return userRepository.findById(userId).map(this::toDTO);
     }
 
-    public User updateUser(Long userId, User userDetails) {
+    public UserDTO updateUser(Long userId, UpdateUserRequest request) {
         return userRepository.findById(userId).map(user -> {
-            user.setFirstName(userDetails.getFirstName());
-            user.setLastName(userDetails.getLastName());
-            user.setEmail(userDetails.getEmail());
-            user.setPhoneNumber(userDetails.getPhoneNumber());
-            // Will add any other fields that have to be updated
-            return userRepository.save(user);
-        }).orElseThrow(() -> new RuntimeException("User not found"));
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+            user.setPhoneNumber(request.getPhoneNumber());
+            return toDTO(userRepository.save(user));
+        }).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private UserDTO toDTO(User user) {
+        return new UserDTO(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getPhoneNumber()
+        );
     }
 }
-

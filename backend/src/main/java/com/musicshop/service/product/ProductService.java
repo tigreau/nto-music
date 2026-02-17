@@ -3,6 +3,7 @@ package com.musicshop.service.product;
 import com.musicshop.discount.DiscountStrategy;
 import com.musicshop.discount.DiscountStrategyFactory;
 import com.musicshop.discount.DiscountType;
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.mapper.ProductMapper;
 import com.musicshop.dto.product.SimpleProductDTO;
 import com.musicshop.dto.product.DetailedProductDTO;
@@ -107,7 +108,7 @@ public class ProductService {
 
         // Handle category logic
         product.setCategory(categoryRepository.findById(product.getCategory().getId())
-                .orElseThrow(() -> new RuntimeException("Category not found")));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found")));
 
         Product savedProduct = productRepository.save(product);
         return productMapper.toDetailedProductDTO(savedProduct);
@@ -168,7 +169,7 @@ public class ProductService {
             productRepository.delete(product);
             eventPublisher.publishEvent(new ProductDeletionEvent(this, product, cartDetails));
         } else {
-            throw new RuntimeException("Product not found");
+            throw new ResourceNotFoundException("Product not found");
         }
     }
 
@@ -179,7 +180,7 @@ public class ProductService {
             // validate discount type
             DiscountType type = DiscountType.fromValue(discountType)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown discount type: " + discountType));
-            DiscountStrategy discountStrategy = discountStrategyFactory.getDiscountStrategy(type.getValue());
+            DiscountStrategy discountStrategy = discountStrategyFactory.getDiscountStrategy(type);
             BigDecimal discountedPrice = discountStrategy.applyDiscount(product);
             product.setPrice(discountedPrice);
             Product savedProduct = productRepository.save(product);

@@ -2,9 +2,9 @@ package com.musicshop.controller.user;
 
 import com.musicshop.model.user.Notification;
 import com.musicshop.model.user.User;
-import com.musicshop.repository.user.NotificationRepository;
-import com.musicshop.repository.user.UserRepository;
 import com.musicshop.service.notification.NotificationSseService;
+import com.musicshop.service.user.NotificationService;
+import com.musicshop.service.user.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -17,72 +17,43 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationSseService sseService;
-    private final NotificationRepository notificationRepository;
-    private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final UserService userService;
 
     public NotificationController(
             NotificationSseService sseService,
-            NotificationRepository notificationRepository,
-            UserRepository userRepository) {
+            NotificationService notificationService,
+            UserService userService) {
         this.sseService = sseService;
-        this.notificationRepository = notificationRepository;
-        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.userService = userService;
     }
 
-    /**
-     * SSE endpoint - establishes real-time connection
-     */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamNotifications(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
+        User user = userService.findByEmail(authentication.getName());
         return sseService.createEmitter(user.getId());
     }
 
-    /**
-     * Get notification history (for initial load / offline periods)
-     */
     @GetMapping
     public List<Notification> getNotifications(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return notificationRepository.findByUserOrderByTimestampDesc(user);
+        User user = userService.findByEmail(authentication.getName());
+        return notificationService.getNotificationsForUser(user);
     }
 
-    /**
-     * Mark notification as read
-     */
     @PatchMapping("/{notificationId}/read")
     public void markAsRead(@PathVariable Long notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
-        notification.setRead(true);
-        notificationRepository.save(notification);
+        notificationService.markAsRead(notificationId);
     }
 
-    /**
-     * Mark all as read
-     */
     @PatchMapping("/read-all")
     public void markAllAsRead(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        List<Notification> unread = notificationRepository.findByUserAndIsReadFalse(user);
-        unread.forEach(n -> n.setRead(true));
-        notificationRepository.saveAll(unread);
+        User user = userService.findByEmail(authentication.getName());
+        notificationService.markAllAsRead(user);
     }
 
-    /**
-     * Delete notification
-     */
     @DeleteMapping("/{notificationId}")
     public void deleteNotification(@PathVariable Long notificationId) {
-        notificationRepository.deleteById(notificationId);
+        notificationService.deleteNotification(notificationId);
     }
 }

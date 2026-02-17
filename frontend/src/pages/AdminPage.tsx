@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Shield, Plus, Save, Trash2, Tag, FolderPlus, Image as ImageIcon } from 'lucide-react';
 import { ProductImagesModal } from '@/components/admin/ProductImagesModal';
+import { toast } from 'sonner';
 
 interface Category {
     id: number;
@@ -53,7 +54,7 @@ const AdminPage = () => {
     // Product creation category selection state
     const [productParentId, setProductParentId] = useState<number>(0);
 
-    const [selectedDiscount, setSelectedDiscount] = useState('fixed');
+    const [selectedDiscount, setSelectedDiscount] = useState('Fixed Amount');
 
     // Image Modal State
     const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -82,7 +83,7 @@ const AdminPage = () => {
 
     const handleCreateSubcategory = () => {
         if (!newSubcategoryName || !selectedParentId) {
-            alert("Please provide a name and select a parent category.");
+            toast.error('Please provide a name and select a parent category.');
             return;
         }
 
@@ -97,15 +98,19 @@ const AdminPage = () => {
             })
         })
             .then(res => {
-                if (res.ok) return res.json();
-                throw new Error('Failed to create subcategory');
+                if (res.ok) {
+                    return res.json().then(() => {
+                        fetchCategories();
+                        setNewSubcategoryName('');
+                        toast.success('Subcategory created');
+                    });
+                } else {
+                    return res.json().then(data => {
+                        toast.error(data.message || 'Failed to create subcategory');
+                    });
+                }
             })
-            .then(() => {
-                fetchCategories(); // Refresh list
-                setNewSubcategoryName('');
-                alert('Subcategory created!');
-            })
-            .catch(err => alert(err.message));
+            .catch(err => console.error('Error creating subcategory:', err));
     };
 
     const fetchProducts = () => {
@@ -120,7 +125,7 @@ const AdminPage = () => {
 
     const addProduct = () => {
         if (newProduct.category.id === 0) {
-            alert("Please select a valid subcategory.");
+            toast.error('Please select a valid subcategory.');
             return;
         }
 
@@ -134,29 +139,25 @@ const AdminPage = () => {
         })
             .then(response => {
                 if (response.ok) {
-                    return response.json();
+                    return response.json().then(() => {
+                        fetchProducts();
+                        setNewProduct({
+                            name: '',
+                            price: 0,
+                            description: '',
+                            quantityAvailable: 0,
+                            condition: 'NEW',
+                            category: { id: 0 }
+                        });
+                        toast.success('Product added successfully');
+                    });
                 } else {
-                    return response.text().then(text => {
-                        throw new Error(text);
+                    return response.json().then(data => {
+                        toast.error(data.message || 'Failed to add product');
                     });
                 }
             })
-            .then(() => {
-                fetchProducts();
-                setNewProduct({
-                    name: '',
-                    price: 0,
-                    description: '',
-                    quantityAvailable: 0,
-                    condition: 'NEW',
-                    category: { id: 0 }
-                });
-                alert("Product added successfully!");
-            })
-            .catch(error => {
-                alert(`Error adding product: ${error.message}`);
-                console.error('Error adding product:', error);
-            });
+            .catch(error => console.error('Error adding product:', error));
     };
 
     const handleEdit = (id: number, updatedProduct: Partial<Product>) => {
@@ -171,28 +172,30 @@ const AdminPage = () => {
             .then(response => {
                 if (response.ok) {
                     fetchProducts();
+                    toast.success('Product updated');
                 } else {
-                    console.error('Failed to update product');
+                    return response.json().then(data => {
+                        toast.error(data.message || 'Failed to update product');
+                    });
                 }
             })
             .catch(error => console.error('Error updating product:', error));
     };
 
     const deleteProduct = (id: number) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
-            fetch(`/api/products/${id}`, {
-                method: 'DELETE',
-                credentials: 'include'
+        fetch(`/api/products/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        })
+            .then(response => {
+                if (response.ok) {
+                    fetchProducts();
+                    toast.success('Product deleted');
+                } else {
+                    toast.error('Failed to delete product');
+                }
             })
-                .then(response => {
-                    if (response.ok) {
-                        fetchProducts();
-                    } else {
-                        console.error('Failed to delete product');
-                    }
-                })
-                .catch(error => console.error('Error deleting product:', error));
-        }
+            .catch(error => console.error('Error deleting product:', error));
     };
 
     const applyDiscount = (id: number, discountType: string) => {
@@ -203,8 +206,9 @@ const AdminPage = () => {
             .then(response => {
                 if (response.ok) {
                     fetchProducts();
+                    toast.success('Discount applied');
                 } else {
-                    console.error('Failed to apply discount');
+                    toast.error('Failed to apply discount');
                 }
             })
             .catch(error => console.error('Error applying discount:', error));
@@ -515,12 +519,12 @@ const AdminPage = () => {
                                             </Button>
                                             <div className="flex items-center gap-2">
                                                 <select
-                                                    className="h-10 rounded-md border-2 border-[#93a1a1] bg-white px-3 text-sm font-semibold"
+                                                    className="h-10 rounded-md border-2 border-[#93a1a1] bg-[#fdf6e3] text-[#073642] px-3 text-sm font-semibold"
                                                     value={selectedDiscount}
                                                     onChange={(e) => setSelectedDiscount(e.target.value)}
                                                 >
-                                                    <option value="fixed">Fixed Amount</option>
-                                                    <option value="percentage">Percentage</option>
+                                                    <option value="Fixed Amount">Fixed Amount</option>
+                                                    <option value="Percentage">Percentage</option>
                                                 </select>
                                                 <Button
                                                     size="sm"

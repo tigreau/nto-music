@@ -5,7 +5,7 @@ import './ProductGrid.css';
 interface ProductGridProps {
     products: Product[];
     onProductClick: (product: Product) => void;
-    onAddToCart?: (productId: number, quantity: number) => void;
+    onAddToCart?: (productId: number) => void;
     isLoading?: boolean;
 }
 
@@ -71,7 +71,7 @@ export function ProductGrid({ products, onProductClick, onAddToCart, isLoading }
                                     className="add-to-cart-btn"
                                     onClick={e => {
                                         e.stopPropagation();
-                                        onAddToCart(product.id, 1);
+                                        onAddToCart(product.id);
                                     }}
                                 >
                                     + Cart

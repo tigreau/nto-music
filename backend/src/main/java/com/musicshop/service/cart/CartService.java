@@ -1,5 +1,7 @@
 package com.musicshop.service.cart;
 
+import com.musicshop.exception.InsufficientStockException;
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.model.cart.Cart;
 import com.musicshop.model.cart.CartDetail;
 import com.musicshop.model.product.Product;
@@ -45,18 +47,19 @@ public class CartService {
         return cartRepository.save(newCart);
     }
 
+    @Transactional
     public CartDetail addProductToCart(Long userId, Long productId, int quantity) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Cart cart = cartRepository.findByUser(user).orElseGet(() -> createNewCart(user));
 
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository.findByIdForUpdate(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         if (quantity > product.getQuantityAvailable()) {
-            throw new RuntimeException("Not enough quantity available");
+            throw new InsufficientStockException("Not enough quantity available");
         }
 
-        // Update product quantity
         product.setQuantityAvailable(product.getQuantityAvailable() - quantity);
         productRepository.save(product);
 
@@ -68,8 +71,10 @@ public class CartService {
     }
 
     public Optional<CartDetail> getCartDetail(Long cartId, Long productId) {
-        Cart cart = cartRepository.findById(cartId).orElseThrow();
-        Product product = productRepository.findById(productId).orElseThrow();
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         return cartDetailRepository.findByCartAndProduct(cart, product);
     }
 
@@ -80,7 +85,7 @@ public class CartService {
 
     public List<CartDetail> listCartDetails(Long cartId) {
         Cart cart = cartRepository.findById(cartId)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
         return cartDetailRepository.findByCart(cart);
     }
 
@@ -91,7 +96,8 @@ public class CartService {
     }
 
     public CartDetail updateCartDetail(Long detailId, int newQuantity) {
-        CartDetail cartDetail = cartDetailRepository.findById(detailId).orElseThrow();
+        CartDetail cartDetail = cartDetailRepository.findById(detailId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart detail not found"));
         cartDetail.setQuantity(newQuantity);
         return cartDetailRepository.save(cartDetail);
     }
@@ -102,9 +108,10 @@ public class CartService {
         return cartMapper.toCartItemDTO(updatedDetail);
     }
 
+    @Transactional
     public void deleteCartDetail(Long detailId) {
         CartDetail detail = cartDetailRepository.findById(detailId)
-                .orElseThrow(() -> new RuntimeException("Cart detail not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart detail not found"));
 
         Product product = detail.getProduct();
         product.setQuantityAvailable(product.getQuantityAvailable() + detail.getQuantity());
@@ -113,6 +120,7 @@ public class CartService {
         cartDetailRepository.delete(detail);
     }
 
+    @Transactional
     public void clearCart(Long cartId) {
         List<CartDetail> details = listCartDetails(cartId);
         for (CartDetail detail : details) {
@@ -121,5 +129,16 @@ public class CartService {
             productRepository.save(product);
         }
         cartDetailRepository.deleteAll(details);
+    }
+
+    public Cart getCartForUser(User user) {
+        return cartRepository.findByUser(user).orElseGet(() -> createNewCart(user));
+    }
+
+    public void clearCartForUser(User user) {
+        Cart cart = cartRepository.findByUser(user).orElse(null);
+        if (cart != null) {
+            clearCart(cart.getId());
+        }
     }
 }

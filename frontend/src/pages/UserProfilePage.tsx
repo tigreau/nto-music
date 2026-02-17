@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { User, Save, Mail, Phone } from 'lucide-react';
 import { getStoredUser } from '@/api/client';
+import { toast } from 'sonner';
 
 interface UserData {
     firstName: string;
@@ -42,10 +43,10 @@ const UserProfilePage = () => {
         })
             .then(response => {
                 if (response.ok) {
-                    alert('Profile updated successfully!');
+                    toast.success('Profile updated successfully');
                 } else {
                     console.error('Failed to update user data');
-                    alert('Failed to update profile.');
+                    toast.error('Failed to update profile');
                 }
             })
             .catch(error => console.error('Error updating user data:', error))

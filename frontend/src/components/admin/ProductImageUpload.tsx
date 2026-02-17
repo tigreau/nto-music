@@ -3,6 +3,7 @@ import { Upload, X, Check, GripVertical, Star } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { toast } from 'sonner';
 
 interface ProductImage {
     id: number;
@@ -59,13 +60,22 @@ export function ProductImageUpload({ productId, images, onImagesChange }: Props)
             body: formData,
         });
 
-        if (!response.ok) throw new Error('Upload failed');
+        if (!response.ok) {
+            let message = 'Upload failed';
+            try {
+                const data = await response.json();
+                message = data.message || message;
+            } catch {
+                // response wasn't JSON
+            }
+            toast.error(message);
+            throw new Error(message);
+        }
         return await response.json();
     };
 
 
     const handleDelete = async (imageId: number) => {
-        if (!confirm('Delete this image?')) return;
 
         await fetch(`/api/products/${productId}/images/${imageId}`, {
             method: 'DELETE',
@@ -200,7 +210,7 @@ function SortableImage({ image, onDelete, onSetPrimary }: {
             <button
                 {...attributes}
                 {...listeners}
-                className="absolute top-2 left-2 z-10 p-1 bg-white/80 rounded shadow cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 left-2 z-10 p-1 bg-[#eee8d5]/80 rounded shadow cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
             >
                 <GripVertical className="h-4 w-4 text-foreground" />
             </button>
@@ -225,15 +235,15 @@ function SortableImage({ image, onDelete, onSetPrimary }: {
                 {!image.isPrimary && (
                     <button
                         onClick={() => onSetPrimary(image.id)}
-                        className="p-2 bg-white rounded-full hover:bg-gray-100"
+                        className="p-2 bg-[#eee8d5] rounded-full hover:bg-[#fdf6e3]"
                         title="Set as primary"
                     >
-                        <Check className="h-4 w-4 text-gray-700" />
+                        <Check className="h-4 w-4 text-[#073642]" />
                     </button>
                 )}
                 <button
                     onClick={() => onDelete(image.id)}
-                    className="p-2 bg-white rounded-full hover:bg-red-50"
+                    className="p-2 bg-[#eee8d5] rounded-full hover:bg-[#fdf6e3]"
                     title="Delete image"
                 >
                     <X className="h-4 w-4 text-red-600" />

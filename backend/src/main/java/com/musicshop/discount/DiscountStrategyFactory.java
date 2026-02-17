@@ -16,12 +16,14 @@ public class DiscountStrategyFactory {
         this.percentageDiscountStrategy = percentageDiscountStrategy;
     }
 
-    public DiscountStrategy getDiscountStrategy(String type) {
-        if ("fixed".equalsIgnoreCase(type)) {
-            return fixedAmountDiscountStrategy;
-        } else if ("percentage".equalsIgnoreCase(type)) {
-            return percentageDiscountStrategy;
+    public DiscountStrategy getDiscountStrategy(DiscountType type) {
+        switch (type) {
+            case FIXED_AMOUNT:
+                return fixedAmountDiscountStrategy;
+            case PERCENTAGE:
+                return percentageDiscountStrategy;
+            default:
+                throw new IllegalArgumentException("Unsupported discount type: " + type);
         }
-        throw new IllegalArgumentException("Invalid discount type: " + type);
     }
 }

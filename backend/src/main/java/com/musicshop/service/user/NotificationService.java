@@ -2,6 +2,7 @@ package com.musicshop.service.user;
 
 import com.musicshop.event.product.ProductDeletionEvent;
 import com.musicshop.event.product.ProductDiscountEvent;
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.model.product.Product;
 import com.musicshop.event.product.ProductUpdateEvent;
 import com.musicshop.model.cart.CartDetail;
@@ -12,18 +13,22 @@ import com.musicshop.repository.cart.CartDetailRepository;
 import com.musicshop.repository.user.NotificationRepository;
 import com.musicshop.repository.user.UserRepository;
 import com.musicshop.service.notification.NotificationSseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class NotificationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
     private final CartDetailRepository cartDetailRepository;
     private final NotificationRepository notificationRepository;
@@ -42,8 +47,8 @@ public class NotificationService {
         this.sseService = sseService;
     }
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onProductUpdate(ProductUpdateEvent event) {
         Product updatedProduct = event.getUpdatedProduct();
         List<CartDetail> affectedCartDetails = cartDetailRepository.findByProductId(updatedProduct.getId());
@@ -51,7 +56,7 @@ public class NotificationService {
         affectedCartDetails.forEach(cartDetail -> {
             User affectedUser = cartDetail.getCart().getUser();
             String message = String.format(
-                    "Product '%s' in your cart was updated. New price: €%.2f",
+                    "Product '%s' in your cart was updated. New price: EUR %.2f",
                     updatedProduct.getName(),
                     updatedProduct.getPrice());
 
@@ -63,8 +68,8 @@ public class NotificationService {
         });
     }
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onProductDeletion(ProductDeletionEvent event) {
         Product deletedProduct = event.getDeletedProduct();
         List<CartDetail> affectedCartDetails = event.getAffectedCartDetails();
@@ -83,8 +88,8 @@ public class NotificationService {
         });
     }
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onProductDiscount(ProductDiscountEvent event) {
         Product discountedProduct = event.getDiscountedProduct();
         BigDecimal originalPrice = event.getOriginalPrice();
@@ -95,7 +100,7 @@ public class NotificationService {
             BigDecimal savedAmount = originalPrice.subtract(discountedProduct.getPrice());
 
             String message = String.format(
-                    "Great news! '%s' in your cart is now €%.2f (save €%.2f)",
+                    "Great news! '%s' in your cart is now EUR %.2f (save EUR %.2f)",
                     discountedProduct.getName(),
                     discountedProduct.getPrice(),
                     savedAmount);
@@ -123,28 +128,37 @@ public class NotificationService {
             notification.setRelatedEntityId(relatedEntityId);
             notification.setRead(false);
 
-            // Save to database
             Notification saved = notificationRepository.save(notification);
-
-            // Push to user in real-time (if connected)
             sseService.sendToUser(user.getId(), saved);
-
         } catch (Exception e) {
-            // Log but don't fail the transaction
-            System.err.println("Failed to send notification to user " + user.getId() + ": " + e.getMessage());
+            logger.error("Failed to send notification to user {}: {}", user.getId(), e.getMessage());
         }
     }
 
-    public List<Notification> getNotificationsForUser(Long userId) {
-        Optional<User> user = userRepository.findById(userId);
-        return user.map(notificationRepository::findByUserOrderByTimestampDesc).orElseGet(List::of);
+    @Transactional(readOnly = true)
+    public List<Notification> getNotificationsForUser(User user) {
+        return notificationRepository.findByUserOrderByTimestampDesc(user);
     }
 
-    public boolean deleteNotification(Long notificationId) {
-        if (notificationRepository.existsById(notificationId)) {
-            notificationRepository.deleteById(notificationId);
-            return true;
+    @Transactional
+    public void markAsRead(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+        notification.setRead(true);
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void markAllAsRead(User user) {
+        List<Notification> unread = notificationRepository.findByUserAndIsReadFalse(user);
+        unread.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(unread);
+    }
+
+    public void deleteNotification(Long notificationId) {
+        if (!notificationRepository.existsById(notificationId)) {
+            throw new ResourceNotFoundException("Notification not found");
         }
-        return false;
+        notificationRepository.deleteById(notificationId);
     }
 }

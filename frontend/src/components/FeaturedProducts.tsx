@@ -20,7 +20,7 @@ interface Product {
 }
 
 interface FeaturedProductsProps {
-  onAddToCart?: (productId: number, quantity: number) => void
+  onAddToCart?: (productId: number) => void
   onProductClick?: (product: Product) => void
   isAdmin?: boolean
   categoryFilter?: string | null
@@ -91,10 +91,7 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
   const handleAddToCart = (e: React.MouseEvent, productId: number) => {
     e.stopPropagation()
     if (onAddToCart) {
-      const quantity = parseInt(prompt('Enter quantity:', '1') || '0', 10)
-      if (!isNaN(quantity) && quantity > 0) {
-        onAddToCart(productId, quantity)
-      }
+      onAddToCart(productId)
     }
   }
 
