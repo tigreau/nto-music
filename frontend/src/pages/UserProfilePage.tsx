@@ -2,59 +2,70 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { User, Save, Mail, Phone } from 'lucide-react';
-import { getStoredUser } from '@/api/client';
-import { toast } from 'sonner';
-
-interface UserData {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string;
-}
+import { EmptyState } from '@/components/state/EmptyState';
+import { AsyncPageState } from '@/components/state/AsyncPageState';
+import { useUpdateUserProfile, useUserProfile } from '@/hooks/useApi';
+import { useAuth } from '@/context/AuthContext';
+import { getApiErrorPolicy } from '@/lib/apiError';
+import { UserProfile } from '@/types';
+import { useMutationFeedback } from '@/hooks/useMutationFeedback';
 
 const UserProfilePage = () => {
-    const [user, setUser] = useState<UserData>({ firstName: '', lastName: '', email: '', phoneNumber: '' });
+    const [user, setUser] = useState<UserProfile>({ firstName: '', lastName: '', email: '', phoneNumber: '' });
     const [isSaving, setIsSaving] = useState(false);
-    const storedUser = getStoredUser();
-    const customerId = storedUser?.userId;
+    const { user: authUser } = useAuth();
+    const customerId = authUser?.userId;
+    const {
+        data: profileData,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    } = useUserProfile(customerId);
+    const updateUserProfileMutation = useUpdateUserProfile();
+    const runWithFeedback = useMutationFeedback();
 
     useEffect(() => {
-        fetch(`/api/users/${customerId}`, {
-            credentials: 'include'
-        })
-            .then(response => response.json())
-            .then(data => setUser(data))
-            .catch(error => console.error('Error fetching user data:', error));
-    }, [customerId]);
+        if (profileData) {
+            setUser(profileData);
+        }
+    }, [profileData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setUser({ ...user, [e.target.name]: e.target.value });
     };
 
-    const saveChanges = () => {
+    const saveChanges = async () => {
+        if (!customerId) return;
         setIsSaving(true);
-        fetch(`/api/users/${customerId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
+        await runWithFeedback(
+            () => updateUserProfileMutation.mutateAsync({ id: customerId, data: user }),
+            {
+                context: 'userProfile.update',
+                successMessage: 'Profile updated successfully',
             },
-            credentials: 'include',
-            body: JSON.stringify(user)
-        })
-            .then(response => {
-                if (response.ok) {
-                    toast.success('Profile updated successfully');
-                } else {
-                    console.error('Failed to update user data');
-                    toast.error('Failed to update profile');
-                }
-            })
-            .catch(error => console.error('Error updating user data:', error))
-            .finally(() => setIsSaving(false));
+        );
+        setIsSaving(false);
     };
 
     return (
-        <div className="min-h-screen bg-background">
+        <AsyncPageState
+            isLoading={isLoading}
+            isError={isError}
+            errorMessage={getApiErrorPolicy(error).message}
+            onRetry={() => { refetch(); }}
+            loadingMessage="Loading profile..."
+            loadingClassName="min-h-[50vh]"
+            empty={!customerId}
+            emptyState={
+                <EmptyState
+                    title="User profile unavailable"
+                    description="Sign in again to load your profile data."
+                    icon={<User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />}
+                />
+            }
+        >
+            <div className="min-h-screen bg-background">
             {/* Header Section */}
             <div className="bg-[#073642] border-b-2 border-[#002b36]">
                 <div className="container mx-auto px-4 py-6">
@@ -140,7 +151,7 @@ const UserProfilePage = () => {
                             </div>
 
                             <div className="pt-4">
-                                <Button onClick={saveChanges} disabled={isSaving} size="lg">
+                                <Button onClick={saveChanges} disabled={isSaving || !customerId} size="lg">
                                     <Save className="w-4 h-4 mr-2" />
                                     {isSaving ? 'Saving...' : 'Save Changes'}
                                 </Button>
@@ -149,7 +160,8 @@ const UserProfilePage = () => {
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </AsyncPageState>
     );
 };
 

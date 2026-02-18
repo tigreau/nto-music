@@ -1,62 +1,70 @@
 package com.musicshop.controller.cart;
 
+import com.musicshop.application.cart.CartUseCase;
 import com.musicshop.dto.cart.CartItemDTO;
-import com.musicshop.model.cart.Cart;
-import com.musicshop.model.user.User;
-import com.musicshop.service.cart.CartService;
-import com.musicshop.service.user.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.Min;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/carts")
+@Validated
 public class CartController {
 
-    private final CartService cartService;
-    private final UserService userService;
+    private final CartUseCase cartUseCase;
 
     @Autowired
-    public CartController(CartService cartService, UserService userService) {
-        this.cartService = cartService;
-        this.userService = userService;
+    public CartController(CartUseCase cartUseCase) {
+        this.cartUseCase = cartUseCase;
     }
 
     @PostMapping("/my/products/{productId}")
-    public ResponseEntity<?> addProductToMyCart(@PathVariable Long productId,
-            @RequestParam int quantity,
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Add product to current user's cart")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> addProductToMyCart(@PathVariable Long productId,
+            @RequestParam @Min(1) int quantity,
             Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        cartService.addProductToCart(user.getId(), productId, quantity);
-        return ResponseEntity.ok().body("Product added to cart");
+        cartUseCase.addProduct(authentication.getName(), productId, quantity);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/my/details")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CartItemDTO>> listMyCartDetails(Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        Cart cart = cartService.getCartForUser(user);
-        return ResponseEntity.ok(cartService.listCartItemDTOs(cart.getId()));
+        return ResponseEntity.ok(cartUseCase.listCartDetails(authentication.getName()));
     }
 
     @DeleteMapping("/my/clear")
-    public ResponseEntity<?> clearMyCart(Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        cartService.clearCartForUser(user);
-        return ResponseEntity.ok().build();
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Clear current user's cart")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> clearMyCart(Authentication authentication) {
+        cartUseCase.clearCart(authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/details/{detailId}")
-    public ResponseEntity<CartItemDTO> updateCartDetail(@PathVariable Long detailId, @RequestParam int newQuantity) {
-        CartItemDTO updatedCartDetail = cartService.updateCartItemDTO(detailId, newQuantity);
+    @PreAuthorize("@accessGuard.canAccessCartDetail(#detailId, authentication)")
+    public ResponseEntity<CartItemDTO> updateCartDetail(@PathVariable Long detailId, @RequestParam @Min(1) int newQuantity) {
+        CartItemDTO updatedCartDetail = cartUseCase.updateCartDetail(detailId, newQuantity);
         return ResponseEntity.ok(updatedCartDetail);
     }
 
     @DeleteMapping("/details/{detailId}")
-    public ResponseEntity<?> deleteCartDetail(@PathVariable Long detailId) {
-        cartService.deleteCartDetail(detailId);
-        return ResponseEntity.ok().build();
+    @PreAuthorize("@accessGuard.canAccessCartDetail(#detailId, authentication)")
+    @Operation(summary = "Delete one cart item detail")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> deleteCartDetail(@PathVariable Long detailId) {
+        cartUseCase.deleteCartDetail(detailId);
+        return ResponseEntity.noContent().build();
     }
 }

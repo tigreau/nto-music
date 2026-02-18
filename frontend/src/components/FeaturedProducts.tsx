@@ -1,27 +1,26 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { ShoppingCart, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ErrorState } from '@/components/state/ErrorState';
+import { LoadingState } from '@/components/state/LoadingState';
+import { getApiErrorPolicy } from '@/lib/apiError';
 import { getCategoryImage } from '@/lib/categoryUtils';
+import { filterProductsByCategory, sortProductsByOption } from '@/lib/productView';
+import { useProducts } from '@/hooks/useApi';
+import { Product } from '@/types';
 
-interface Product {
-  id: number
-  name: string
-  price: number
-  description?: string
-  quantityAvailable?: number
-  categoryName?: string
-}
+type FeaturedProduct = Product & { description?: string };
 
 interface FeaturedProductsProps {
   onAddToCart?: (productId: number) => void
-  onProductClick?: (product: Product) => void
+  onProductClick?: (product: FeaturedProduct) => void
   isAdmin?: boolean
   categoryFilter?: string | null
 }
@@ -29,57 +28,26 @@ interface FeaturedProductsProps {
 const ITEMS_PER_PAGE = 12
 
 export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categoryFilter }: FeaturedProductsProps) {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState("Recommended")
   const [currentPage, setCurrentPage] = useState(1)
+  const {
+    data: productsPage,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useProducts({ size: 200, page: 0, sort: 'recommended' });
+  const products = (productsPage?.content ?? []) as FeaturedProduct[];
 
   useEffect(() => {
-    fetchProducts()
     setCurrentPage(1)
   }, [categoryFilter])
 
-  const fetchProducts = () => {
-    setLoading(true)
-    fetch('/api/products')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch products')
-        }
-        return response.json()
-      })
-      .then(data => {
-        setProducts(data)
-        setError(null)
-      })
-      .catch(error => {
-        console.error('Error fetching products:', error)
-        setError('Failed to load products. Please try again later.')
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-  }
-
   // Filter products by category if filter is applied
-  const filteredProducts = categoryFilter
-    ? products.filter(p => p.categoryName && p.categoryName.toLowerCase() === categoryFilter.toLowerCase())
-    : products
+  const filteredProducts = filterProductsByCategory(products, categoryFilter)
 
   // Sort products based on selected option
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "Price: Low to High":
-        return a.price - b.price
-      case "Price: High to Low":
-        return b.price - a.price
-      case "Newest":
-        return b.id - a.id // Assuming higher ID = newer
-      default:
-        return 0 // Recommended - keep original order
-    }
-  })
+  const sortedProducts = sortProductsByOption(filteredProducts, sortBy)
 
   const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE)
   const startItem = (currentPage - 1) * ITEMS_PER_PAGE
@@ -95,7 +63,7 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
     }
   }
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: FeaturedProduct) => {
     if (onProductClick) {
       onProductClick(product)
     }
@@ -118,27 +86,25 @@ export function FeaturedProducts({ onAddToCart, onProductClick, isAdmin, categor
     return pages
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Loading products...</span>
-          </div>
+          <LoadingState message="Loading products..." className="py-20" />
         </div>
       </section>
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-20">
-            <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={fetchProducts}>Try Again</Button>
-          </div>
+          <ErrorState
+            message={getApiErrorPolicy(error).message}
+            onRetry={() => { refetch(); }}
+            className="py-20"
+          />
         </div>
       </section>
     )

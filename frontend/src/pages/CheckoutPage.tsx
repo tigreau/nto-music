@@ -1,24 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { EmptyState } from '@/components/state/EmptyState';
+import { AsyncPageState } from '@/components/state/AsyncPageState';
 import { useCart } from '@/context/CartContext';
+import { getApiErrorPolicy } from '@/lib/apiError';
 import { getCategoryImage } from '@/lib/categoryUtils';
 import { CreditCard, ShoppingBag, MapPin, ChevronLeft, CheckCircle } from 'lucide-react';
+import { useCheckout } from '@/hooks/useApi';
+import { CheckoutResult } from '@/types';
+import { useMutationFeedback } from '@/hooks/useMutationFeedback';
 
 const TAX_RATE = 0.21;
 const SHIPPING_FEE = 5.99;
 
-interface OrderResult {
-    orderId: number;
-    totalAmount: number;
-    paymentStatus: string;
-    transactionId: string;
-}
-
 const CheckoutPage = () => {
-    const { cartItems, refreshCart } = useCart();
+    const { cartItems, refreshCart, isLoading, cartError, clearCartError } = useCart();
     const navigate = useNavigate();
+    const checkoutMutation = useCheckout();
+    const runWithFeedback = useMutationFeedback();
+    const isMountedRef = useRef(true);
 
     const [address, setAddress] = useState({
         street: '',
@@ -30,15 +32,18 @@ const CheckoutPage = () => {
     const [paymentMethod, setPaymentMethod] = useState('credit_card');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
+    const [orderResult, setOrderResult] = useState<CheckoutResult | null>(null);
 
     useEffect(() => {
+        isMountedRef.current = true;
         refreshCart();
+        return () => {
+            isMountedRef.current = false;
+        };
     }, [refreshCart]);
 
     const subtotal = cartItems.reduce((sum, item) => {
-        const product = (item as any).product || (item as any).products;
-        return sum + (product.price * item.quantity);
+        return sum + (item.product.price * item.quantity);
     }, 0);
 
     const tax = subtotal * TAX_RATE;
@@ -55,38 +60,30 @@ const CheckoutPage = () => {
         setIsSubmitting(true);
         setError('');
 
-        try {
-            const response = await fetch('/api/orders/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
+        const result = await runWithFeedback(
+            () => checkoutMutation.mutateAsync({
                     paymentMethod,
                     street: address.street,
                     number: address.number,
                     postalCode: address.postalCode,
                     city: address.city,
                     country: address.country,
-                }),
-            });
+            }),
+            {
+                context: 'checkout.submit',
+                onError: (err) => {
+                    if (isMountedRef.current) {
+                        setError(getApiErrorPolicy(err).message);
+                    }
+                },
+            },
+        );
 
-            if (!response.ok) {
-                let message = 'Checkout failed';
-                try {
-                    const data = await response.json();
-                    message = data.message || message;
-                } catch {
-                    // response wasn't JSON
-                }
-                throw new Error(message);
-            }
-
-            const result: OrderResult = await response.json();
+        if (result && isMountedRef.current) {
             setOrderResult(result);
-            refreshCart();
-        } catch (err: any) {
-            setError(err.message || 'Something went wrong');
-        } finally {
+            void refreshCart();
+        }
+        if (isMountedRef.current) {
             setIsSubmitting(false);
         }
     };
@@ -141,34 +138,6 @@ const CheckoutPage = () => {
         );
     }
 
-    // Empty cart redirect
-    if (cartItems.length === 0) {
-        return (
-            <div className="min-h-screen bg-background">
-                <div className="bg-[#073642] border-b-2 border-[#002b36]">
-                    <div className="container mx-auto px-4 py-6">
-                        <div className="flex items-center gap-3">
-                            <ShoppingBag className="w-8 h-8 text-[#268bd2]" />
-                            <h1 className="font-[family-name:var(--font-display)] text-4xl text-[#fdf6e3] tracking-tight">
-                                CHECKOUT
-                            </h1>
-                        </div>
-                    </div>
-                </div>
-                <div className="container mx-auto px-4 py-8">
-                    <div className="max-w-lg mx-auto">
-                        <div className="bg-card rounded-xl border border-border p-12 text-center">
-                            <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                            <h2 className="text-xl font-semibold text-foreground mb-2">Your cart is empty</h2>
-                            <p className="text-muted-foreground mb-6">Add items to your cart before checking out.</p>
-                            <Button onClick={() => navigate('/')}>Browse Products</Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
@@ -184,6 +153,28 @@ const CheckoutPage = () => {
             </div>
 
             <div className="container mx-auto px-4 py-8">
+                <AsyncPageState
+                    isLoading={isLoading}
+                    isError={!!cartError}
+                    errorMessage={cartError ? getApiErrorPolicy(cartError).message : undefined}
+                    onRetry={() => {
+                        clearCartError();
+                        refreshCart();
+                    }}
+                    loadingMessage="Loading checkout..."
+                    loadingClassName="min-h-[40vh]"
+                    empty={cartItems.length === 0}
+                    emptyState={
+                        <div className="max-w-lg mx-auto">
+                            <EmptyState
+                                title="Your cart is empty"
+                                description="Add items to your cart before checking out."
+                                icon={<ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />}
+                                action={<Button onClick={() => navigate('/')}>Browse Products</Button>}
+                            />
+                        </div>
+                    }
+                >
                 <div className="max-w-5xl mx-auto">
                     {/* Back to cart */}
                     <button
@@ -298,7 +289,7 @@ const CheckoutPage = () => {
                                 </h2>
                                 <div className="space-y-3 mb-4">
                                     {cartItems.map(cartItem => {
-                                        const product = (cartItem as any).product || (cartItem as any).products;
+                                        const product = cartItem.product;
                                         const imageUrl = product.thumbnailUrl || getCategoryImage(product.category?.name);
                                         return (
                                             <div key={cartItem.id} className="flex items-center gap-3">
@@ -361,6 +352,7 @@ const CheckoutPage = () => {
                         </div>
                     </div>
                 </div>
+                </AsyncPageState>
             </div>
         </div>
     );

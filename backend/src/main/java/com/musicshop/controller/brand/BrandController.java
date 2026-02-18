@@ -1,7 +1,7 @@
 package com.musicshop.controller.brand;
 
+import com.musicshop.application.brand.BrandUseCase;
 import com.musicshop.dto.brand.BrandDTO;
-import com.musicshop.service.brand.BrandService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,11 +14,11 @@ import java.util.List;
 @RequestMapping("/api/brands")
 public class BrandController {
 
-    private final BrandService brandService;
+    private final BrandUseCase brandUseCase;
 
     @Autowired
-    public BrandController(BrandService brandService) {
-        this.brandService = brandService;
+    public BrandController(BrandUseCase brandUseCase) {
+        this.brandUseCase = brandUseCase;
     }
 
     /**
@@ -26,6 +26,6 @@ public class BrandController {
      */
     @GetMapping
     public ResponseEntity<List<BrandDTO>> getAllBrands() {
-        return ResponseEntity.ok(brandService.findAll());
+        return ResponseEntity.ok(brandUseCase.findAll());
     }
 }

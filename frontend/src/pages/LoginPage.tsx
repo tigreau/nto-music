@@ -2,15 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { login, register } from "@/api/client";
+import { useAuth } from '@/context/AuthContext';
+import { getApiErrorPolicy } from '@/lib/apiError';
 
-interface LoginPageProps {
-    setIsAuthenticated: (value: boolean) => void;
-    setIsAdmin: (value: boolean) => void;
-}
-
-const LoginPage = ({ setIsAuthenticated, setIsAdmin }: LoginPageProps) => {
+const LoginPage = () => {
     const navigate = useNavigate();
+    const { login, register } = useAuth();
     const [isRegisterMode, setIsRegisterMode] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -32,16 +29,13 @@ const LoginPage = ({ setIsAuthenticated, setIsAdmin }: LoginPageProps) => {
                 res = await login(email, password);
             }
 
-            setIsAuthenticated(true);
-            setIsAdmin(res.role === "ADMIN");
-
             if (res.role === "ADMIN") {
                 navigate("/admin");
             } else {
                 navigate("/");
             }
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Something went wrong");
+            setError(getApiErrorPolicy(err).message);
         } finally {
             setLoading(false);
         }

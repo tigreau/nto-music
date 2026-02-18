@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from "@/context/CartContext";
 import { Hero } from '@/components/Hero';
 import { FilterSidebar } from '@/components/FilterSidebar';
 import { ProductGrid } from '@/components/ProductGrid';
 import { ReviewSection } from '@/components/ReviewSection';
 import ProductModal from "@/components/ProductModal";
-import { useProducts, useBrands, useCategoryReviews, useCategories } from '@/hooks/useApi';
+import { AsyncPageState } from '@/components/state/AsyncPageState';
+import { useProducts, useBrands, useCategoryReviews, useCategories, useProduct, useAddToCart } from '@/hooks/useApi';
+import { getApiErrorPolicy } from '@/lib/apiError';
 import { ProductCondition, SortOption, Product } from '@/types';
 import { useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useMutationFeedback } from '@/hooks/useMutationFeedback';
 import './HomePage.css';
 
 interface HomePageProps {
@@ -29,9 +31,10 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
     const [selectedSubcategory, setSelectedSubcategory] = useState<string | undefined>(undefined);
 
     // Modal state
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [detailedProduct, setDetailedProduct] = useState<any>(null);
+    const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
     const { refreshCart } = useCart();
+    const addToCartMutation = useAddToCart();
+    const runWithFeedback = useMutationFeedback();
 
     // Queries
     const { data: brands = [] } = useBrands();
@@ -41,7 +44,13 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
     // If a subcategory is selected, filter by subcategory; otherwise by parent category
     const effectiveCategorySlug = selectedSubcategory || categorySlug;
 
-    const { data: productsPage, isLoading } = useProducts({
+    const {
+        data: productsPage,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    } = useProducts({
         category: effectiveCategorySlug,
         brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
@@ -53,105 +62,98 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
     });
 
     const { data: reviewsData } = useCategoryReviews(categorySlug);
+    const { data: detailedProduct } = useProduct(selectedProductId);
 
     // Find subcategories for the current parent category
     const activeParent = categories.find(c => c.slug === categorySlug);
     const subCategories = activeParent?.subCategories ?? [];
 
-    // Reset subcategory when parent category changes
-    const [prevCategorySlug, setPrevCategorySlug] = useState<string | undefined>(undefined);
-    if (categorySlug !== prevCategorySlug) {
-        setPrevCategorySlug(categorySlug);
-        if (selectedSubcategory) {
-            setSelectedSubcategory(undefined);
-        }
-    }
+    // Reset selected subcategory when parent category from URL changes
+    // to avoid applying stale nested filters.
+    useEffect(() => {
+        setSelectedSubcategory(undefined);
+    }, [categorySlug]);
 
     const handleProductClick = (product: Product) => {
-        setSelectedProduct(product);
-        fetch(`/api/products/${product.id}`, {
-            credentials: 'include'
-        })
-            .then(r => r.json())
-            .then(data => setDetailedProduct(data))
-            .catch(err => console.error('Error fetching product details:', err));
+        setSelectedProductId(product.id);
     };
 
     const handleCloseModal = () => {
-        setSelectedProduct(null);
-        setDetailedProduct(null);
+        setSelectedProductId(null);
     };
 
     const handleAddToCart = (productId: number) => {
-        fetch(`/api/carts/my/products/${productId}?quantity=1`, {
-            method: 'POST',
-            credentials: 'include'
-        })
-            .then(response => {
-                if (response.ok) {
-                    toast.success('Added to cart');
-                    refreshCart();
-                } else {
-                    return response.json().then(data => {
-                        toast.error(data.message || 'Failed to add item to cart');
-                    });
-                }
-            })
-            .catch(error => console.error('Error adding item to cart:', error));
+        void runWithFeedback(
+            () => addToCartMutation.mutateAsync({ productId, quantity: 1 }),
+            {
+                context: 'home.addToCart',
+                successMessage: 'Added to cart',
+                onSuccess: () => {
+                    void refreshCart();
+                },
+            },
+        );
     };
 
     return (
         <div>
             <Hero />
-            <div className="shop-layout">
-                <FilterSidebar
-                    brands={brands}
-                    selectedBrands={selectedBrands}
-                    onBrandsChange={setSelectedBrands}
-                    selectedConditions={selectedConditions}
-                    onConditionsChange={setSelectedConditions}
-                    minPrice={minPrice}
-                    maxPrice={maxPrice}
-                    onPriceChange={(min, max) => { setMinPrice(min); setMaxPrice(max); }}
-                    sort={sort}
-                    onSortChange={setSort}
-                    subCategories={subCategories}
-                    selectedSubcategory={selectedSubcategory}
-                    onSubcategoryChange={setSelectedSubcategory}
-                />
-                <div className="shop-main">
-                    <div className="shop-results-info">
-                        {productsPage && (
-                            <span>{productsPage.totalElements} product{productsPage.totalElements !== 1 ? 's' : ''}</span>
+            <AsyncPageState
+                isError={isError}
+                errorMessage={getApiErrorPolicy(error).message}
+                onRetry={() => { refetch(); }}
+                loadingClassName="py-16"
+            >
+                <div className="shop-layout">
+                    <FilterSidebar
+                        brands={brands}
+                        selectedBrands={selectedBrands}
+                        onBrandsChange={setSelectedBrands}
+                        selectedConditions={selectedConditions}
+                        onConditionsChange={setSelectedConditions}
+                        minPrice={minPrice}
+                        maxPrice={maxPrice}
+                        onPriceChange={(min, max) => { setMinPrice(min); setMaxPrice(max); }}
+                        sort={sort}
+                        onSortChange={setSort}
+                        subCategories={subCategories}
+                        selectedSubcategory={selectedSubcategory}
+                        onSubcategoryChange={setSelectedSubcategory}
+                    />
+                    <div className="shop-main">
+                        <div className="shop-results-info">
+                            {productsPage && (
+                                <span>{productsPage.totalElements} product{productsPage.totalElements !== 1 ? 's' : ''}</span>
+                            )}
+                        </div>
+                        <ProductGrid
+                            products={productsPage?.content ?? []}
+                            onProductClick={handleProductClick}
+                            onAddToCart={!isAdmin ? handleAddToCart : undefined}
+                            isLoading={isLoading}
+                        />
+                        {productsPage && productsPage.totalPages > 1 && (
+                            <div className="pagination">
+                                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+                                <span>Page {page + 1} of {productsPage.totalPages}</span>
+                                <button disabled={page >= productsPage.totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+                            </div>
+                        )}
+
+                        {/* Category-specific reviews */}
+                        {categorySlug && reviewsData && (
+                            <ReviewSection
+                                categoryName={reviewsData.categoryName}
+                                averageRating={reviewsData.averageRating}
+                                reviewCount={reviewsData.reviewCount}
+                                reviews={reviewsData.reviews}
+                            />
                         )}
                     </div>
-                    <ProductGrid
-                        products={productsPage?.content ?? []}
-                        onProductClick={handleProductClick}
-                        onAddToCart={!isAdmin ? handleAddToCart : undefined}
-                        isLoading={isLoading}
-                    />
-                    {productsPage && productsPage.totalPages > 1 && (
-                        <div className="pagination">
-                            <button disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
-                            <span>Page {page + 1} of {productsPage.totalPages}</span>
-                            <button disabled={page >= productsPage.totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
-                        </div>
-                    )}
-
-                    {/* Category-specific reviews */}
-                    {categorySlug && reviewsData && (
-                        <ReviewSection
-                            categoryName={reviewsData.categoryName}
-                            averageRating={reviewsData.averageRating}
-                            reviewCount={reviewsData.reviewCount}
-                            reviews={reviewsData.reviews}
-                        />
-                    )}
                 </div>
-            </div>
+            </AsyncPageState>
 
-            {selectedProduct && detailedProduct && (
+            {selectedProductId && detailedProduct && (
                 <ProductModal
                     product={detailedProduct}
                     onClose={handleCloseModal}

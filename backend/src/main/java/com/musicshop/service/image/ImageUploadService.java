@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -96,6 +97,8 @@ public class ImageUploadService {
     public void deleteProductImage(Long imageId) {
         ProductImage image = productImageRepository.findById(imageId)
                 .orElseThrow(() -> new RuntimeException("Image not found"));
+        Long productId = image.getProduct().getId();
+        boolean deletedWasPrimary = image.isPrimary();
 
         try {
             // Delete file from filesystem
@@ -105,6 +108,7 @@ public class ImageUploadService {
 
             // Delete from database
             productImageRepository.delete(image);
+            normalizeImageStateAfterDelete(productId, deletedWasPrimary);
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete image file", e);
@@ -115,6 +119,11 @@ public class ImageUploadService {
     public void setPrimaryImage(Long productId, Long imageId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+        boolean imageBelongsToProduct = product.getImages().stream()
+                .anyMatch(img -> img.getId().equals(imageId));
+        if (!imageBelongsToProduct) {
+            throw new RuntimeException("Image not found for product");
+        }
 
         // Unset all primary flags
         product.getImages().forEach(img -> {
@@ -155,6 +164,25 @@ public class ImageUploadService {
         long maxSize = 10 * 1024 * 1024; // 10MB
         if (file.getSize() > maxSize) {
             throw new IllegalArgumentException("File size exceeds maximum of 10MB");
+        }
+    }
+
+    private void normalizeImageStateAfterDelete(Long productId, boolean deletedWasPrimary) {
+        List<ProductImage> remaining = new ArrayList<>(productImageRepository.findByProductIdOrderByDisplayOrderAsc(productId));
+        if (remaining.isEmpty()) {
+            return;
+        }
+
+        boolean hasPrimary = remaining.stream().anyMatch(ProductImage::isPrimary);
+        boolean shouldPromoteFirst = deletedWasPrimary || !hasPrimary;
+
+        for (int i = 0; i < remaining.size(); i++) {
+            ProductImage current = remaining.get(i);
+            current.setDisplayOrder(i);
+            if (shouldPromoteFirst) {
+                current.setPrimary(i == 0);
+            }
+            productImageRepository.save(current);
         }
     }
 }

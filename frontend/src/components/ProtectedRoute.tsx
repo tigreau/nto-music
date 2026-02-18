@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { ReactNode } from 'react';
-import { getStoredUser } from '@/api/client';
+import { useAuth } from '@/context/AuthContext';
+import { LoadingState } from '@/components/state/LoadingState';
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -8,8 +9,12 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
-    const user = getStoredUser();
+    const { user, isInitializing } = useAuth();
     const location = useLocation();
+
+    if (isInitializing) {
+        return <LoadingState message="Checking session..." className="min-h-[40vh]" />;
+    }
 
     if (!user) {
         return <Navigate to="/login" state={{ from: location }} />;

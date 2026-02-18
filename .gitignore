@@ -17,6 +17,7 @@
 .idea/
 *.iml
 *.iws
+.vscode/
 
 # macOS Finder specific files
 .DS_Store
@@ -42,6 +43,11 @@ node_modules/
 frontend/node_modules/
 dist/
 frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.nyc_output/
+frontend/src/types/generated/openapi.json
 
 
 # Security & Configure

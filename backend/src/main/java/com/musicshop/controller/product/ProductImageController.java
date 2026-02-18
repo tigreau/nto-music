@@ -1,73 +1,65 @@
 package com.musicshop.controller.product;
 
-import com.musicshop.model.product.ProductImage;
-import com.musicshop.service.image.ImageUploadService;
+import com.musicshop.application.product.ProductImageUseCase;
+import com.musicshop.dto.product.ProductImageDTO;
+import com.musicshop.dto.product.ReorderImagesRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/products/{productId}/images")
 public class ProductImageController {
 
-    private final ImageUploadService imageUploadService;
+    private final ProductImageUseCase productImageUseCase;
 
-    public ProductImageController(ImageUploadService imageUploadService) {
-        this.imageUploadService = imageUploadService;
+    public ProductImageController(ProductImageUseCase productImageUseCase) {
+        this.productImageUseCase = productImageUseCase;
     }
 
     @PostMapping
-    public ResponseEntity<?> uploadImage(
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductImageDTO> uploadImage(
             @PathVariable Long productId,
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String altText,
             @RequestParam(defaultValue = "false") boolean isPrimary) {
-
-        try {
-            ProductImage image = imageUploadService.uploadProductImage(
-                    productId, file, altText, isPrimary);
-            return ResponseEntity.ok(image);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            e.printStackTrace(); // Log stack trace
-            return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
-        }
+        return ResponseEntity.ok(productImageUseCase.uploadImage(productId, file, altText, isPrimary));
     }
 
     @DeleteMapping("/{imageId}")
-    public ResponseEntity<?> deleteImage(@PathVariable Long imageId) {
-        try {
-            imageUploadService.deleteProductImage(imageId);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete product image")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> deleteImage(@PathVariable Long imageId) {
+        productImageUseCase.deleteImage(imageId);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{imageId}/primary")
-    public ResponseEntity<?> setPrimaryImage(
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Set product primary image")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> setPrimaryImage(
             @PathVariable Long productId,
             @PathVariable Long imageId) {
-        try {
-            imageUploadService.setPrimaryImage(productId, imageId);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        productImageUseCase.setPrimaryImage(productId, imageId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/reorder")
-    public ResponseEntity<?> reorderImages(
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Reorder product images")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> reorderImages(
             @PathVariable Long productId,
-            @RequestBody List<Long> imageIds) {
-        try {
-            imageUploadService.reorderImages(productId, imageIds);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+            @Valid @RequestBody ReorderImagesRequest request) {
+        productImageUseCase.reorderImages(productId, request.getImageIds());
+        return ResponseEntity.noContent().build();
     }
 }

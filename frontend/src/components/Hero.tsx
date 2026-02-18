@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom"
 import { Truck, ShieldCheck, RotateCcw, CreditCard, ArrowRight, Zap, DollarSign, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useEffect, useState } from "react"
-import { Category } from "@/types"
+import { useMemo } from "react"
+import { useCategories } from '@/hooks/useApi';
+import { mapCategoryCounts, NavCategory } from '@/lib/productView';
 
-const CATEGORIES = [
+const CATEGORIES: NavCategory[] = [
   { name: "Guitars & Plucked", slug: "guitars-plucked", href: "/?category=guitars-plucked" },
   { name: "Drums & Percussion", slug: "drums-percussion", href: "/?category=drums-percussion" },
   { name: "Keys & Synths", slug: "keys-synths", href: "/?category=keys-synths" },
@@ -13,20 +14,11 @@ const CATEGORIES = [
 ]
 
 export function Hero() {
-  const [categories, setCategories] = useState(CATEGORIES.map(c => ({ ...c, count: 0 })));
-
-  useEffect(() => {
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then((data: Category[]) => {
-        const updated = CATEGORIES.map(fixed => {
-          const match = data.find(d => d.slug === fixed.slug);
-          return { ...fixed, count: match ? match.productCount : 0 };
-        });
-        setCategories(updated);
-      })
-      .catch(err => console.error("Failed to fetch categories", err));
-  }, []);
+  const { data: categoriesData = [] } = useCategories();
+  const categories = useMemo(
+    () => mapCategoryCounts(CATEGORIES, categoriesData),
+    [categoriesData],
+  );
 
   return (
     <>

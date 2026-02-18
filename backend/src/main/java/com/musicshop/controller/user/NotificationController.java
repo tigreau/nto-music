@@ -1,11 +1,12 @@
 package com.musicshop.controller.user;
 
-import com.musicshop.model.user.Notification;
-import com.musicshop.model.user.User;
-import com.musicshop.service.notification.NotificationSseService;
-import com.musicshop.service.user.NotificationService;
-import com.musicshop.service.user.UserService;
+import com.musicshop.application.notification.NotificationUseCase;
+import com.musicshop.dto.user.NotificationDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -16,44 +17,48 @@ import java.util.List;
 @RequestMapping("/api/notifications")
 public class NotificationController {
 
-    private final NotificationSseService sseService;
-    private final NotificationService notificationService;
-    private final UserService userService;
+    private final NotificationUseCase notificationUseCase;
 
-    public NotificationController(
-            NotificationSseService sseService,
-            NotificationService notificationService,
-            UserService userService) {
-        this.sseService = sseService;
-        this.notificationService = notificationService;
-        this.userService = userService;
+    public NotificationController(NotificationUseCase notificationUseCase) {
+        this.notificationUseCase = notificationUseCase;
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public SseEmitter streamNotifications(Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        return sseService.createEmitter(user.getId());
+        return notificationUseCase.stream(authentication.getName());
     }
 
     @GetMapping
-    public List<Notification> getNotifications(Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        return notificationService.getNotificationsForUser(user);
+    @PreAuthorize("isAuthenticated()")
+    public List<NotificationDTO> getNotifications(Authentication authentication) {
+        return notificationUseCase.getNotifications(authentication.getName());
     }
 
     @PatchMapping("/{notificationId}/read")
-    public void markAsRead(@PathVariable Long notificationId) {
-        notificationService.markAsRead(notificationId);
+    @PreAuthorize("@accessGuard.canAccessNotification(#notificationId, authentication)")
+    @Operation(summary = "Mark notification as read")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> markAsRead(@PathVariable Long notificationId) {
+        notificationUseCase.markAsRead(notificationId);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/read-all")
-    public void markAllAsRead(Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        notificationService.markAllAsRead(user);
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Mark all notifications as read")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> markAllAsRead(Authentication authentication) {
+        notificationUseCase.markAllAsRead(authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{notificationId}")
-    public void deleteNotification(@PathVariable Long notificationId) {
-        notificationService.deleteNotification(notificationId);
+    @PreAuthorize("@accessGuard.canAccessNotification(#notificationId, authentication)")
+    @Operation(summary = "Delete notification")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> deleteNotification(@PathVariable Long notificationId) {
+        notificationUseCase.deleteNotification(notificationId);
+        return ResponseEntity.noContent().build();
     }
 }

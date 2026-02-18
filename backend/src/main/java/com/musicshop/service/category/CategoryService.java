@@ -1,5 +1,6 @@
 package com.musicshop.service.category;
 
+import com.musicshop.dto.category.CreateCategoryRequest;
 import com.musicshop.dto.category.CategoryDTO;
 import com.musicshop.model.category.Category;
 
@@ -11,7 +12,7 @@ public interface CategoryService {
 
     List<Category> findAll();
 
-    Category createCategory(Category category, Long parentId);
+    CategoryDTO createCategory(CreateCategoryRequest request, Long parentId);
 
     Optional<Category> findById(Long id);
 

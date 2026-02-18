@@ -1,22 +1,16 @@
 
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductImageUpload } from './ProductImageUpload';
-
-interface ProductImage {
-    id: number;
-    url: string;
-    altText: string;
-    isPrimary: boolean;
-    displayOrder: number;
-}
+import { useProduct } from '@/hooks/useApi';
+import { ProductImage } from '@/types';
 
 interface Props {
     isOpen: boolean;
     onClose: () => void;
     productId: number;
     productName: string;
-    images: ProductImage[];
     onImagesChange: (images: ProductImage[]) => void;
 }
 
@@ -25,9 +19,42 @@ export function ProductImagesModal({
     onClose,
     productId,
     productName,
-    images,
     onImagesChange
 }: Props) {
+    const [modalImages, setModalImages] = useState<ProductImage[]>([]);
+    const lastSyncedKeyRef = useRef<string>('');
+    const onImagesChangeRef = useRef(onImagesChange);
+    const { data: product, isFetching } = useProduct(isOpen ? productId : null);
+
+    useEffect(() => {
+        onImagesChangeRef.current = onImagesChange;
+    }, [onImagesChange]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setModalImages([]);
+        lastSyncedKeyRef.current = '';
+    }, [isOpen, productId]);
+
+    useEffect(() => {
+        if (!isOpen || !product || isFetching) return;
+        const nextImages = product.images ?? [];
+        setModalImages(nextImages);
+        const signature = nextImages
+            .map((image) => `${image.id}:${image.displayOrder}:${image.isPrimary ? 1 : 0}`)
+            .join('|');
+        const syncKey = `${productId}:${signature}`;
+        if (lastSyncedKeyRef.current !== syncKey) {
+            lastSyncedKeyRef.current = syncKey;
+            onImagesChangeRef.current(nextImages);
+        }
+    }, [isOpen, product, productId, isFetching]);
+
+    const handleImagesChange = (images: ProductImage[]) => {
+        setModalImages(images);
+        onImagesChange(images);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -55,8 +82,8 @@ export function ProductImagesModal({
                 <div className="flex-1 overflow-y-auto p-6">
                     <ProductImageUpload
                         productId={productId}
-                        images={images}
-                        onImagesChange={onImagesChange}
+                        images={modalImages}
+                        onImagesChange={handleImagesChange}
                     />
                 </div>
 

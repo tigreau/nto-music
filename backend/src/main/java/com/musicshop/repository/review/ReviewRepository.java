@@ -11,6 +11,8 @@ import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    boolean existsByProductId(Long productId);
+
     Page<Review> findByCategoryIdIn(List<Long> categoryIds, Pageable pageable);
 
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.category.id IN :categoryIds")

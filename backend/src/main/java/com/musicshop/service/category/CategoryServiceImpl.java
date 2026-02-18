@@ -1,6 +1,7 @@
 package com.musicshop.service.category;
 
 import com.musicshop.dto.category.CategoryDTO;
+import com.musicshop.dto.category.CreateCategoryRequest;
 import com.musicshop.model.category.Category;
 import com.musicshop.repository.category.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +49,13 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category createCategory(Category category, Long parentId) {
+    public CategoryDTO createCategory(CreateCategoryRequest request, Long parentId) {
+        Category category = new Category();
+        category.setCategoryName(request.getCategoryName());
+        category.setDescription(request.getDescription());
+        category.setIconUrl(request.getIconUrl());
+        category.setSlug(request.getSlug());
+
         if (parentId != null) {
             categoryRepository.findById(parentId).ifPresent(category::setParentCategory);
         }
@@ -56,7 +63,14 @@ public class CategoryServiceImpl implements CategoryService {
         if (category.getSlug() == null || category.getSlug().isBlank()) {
             category.setSlug(category.getCategoryName().toLowerCase().replaceAll("[^a-z0-9]+", "-"));
         }
-        return categoryRepository.save(category);
+        Category saved = categoryRepository.save(category);
+        return new CategoryDTO(
+                saved.getId(),
+                saved.getCategoryName(),
+                saved.getSlug(),
+                saved.getDescription(),
+                0L
+        );
     }
 
     @Override

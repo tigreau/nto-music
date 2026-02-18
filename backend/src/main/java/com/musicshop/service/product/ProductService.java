@@ -4,7 +4,10 @@ import com.musicshop.discount.DiscountStrategy;
 import com.musicshop.discount.DiscountStrategyFactory;
 import com.musicshop.discount.DiscountType;
 import com.musicshop.exception.ResourceNotFoundException;
+import com.musicshop.exception.ResourceInUseException;
 import com.musicshop.mapper.ProductMapper;
+import com.musicshop.dto.product.ProductUpsertRequest;
+import com.musicshop.dto.product.ProductPatchRequest;
 import com.musicshop.dto.product.SimpleProductDTO;
 import com.musicshop.dto.product.DetailedProductDTO;
 import com.musicshop.model.product.ProductSortType;
@@ -16,7 +19,9 @@ import com.musicshop.model.product.ProductCondition;
 import com.musicshop.event.product.ProductUpdateEvent;
 import com.musicshop.repository.cart.CartDetailRepository;
 import com.musicshop.repository.category.CategoryRepository;
+import com.musicshop.repository.order.OrderDetailRepository;
 import com.musicshop.repository.product.ProductRepository;
+import com.musicshop.repository.review.ReviewRepository;
 import com.musicshop.specification.ProductSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,9 +34,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -42,6 +49,8 @@ public class ProductService {
     private final ApplicationEventPublisher eventPublisher;
     private final DiscountStrategyFactory discountStrategyFactory;
     private final CartDetailRepository cartDetailRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    private final ReviewRepository reviewRepository;
     private final ProductMapper productMapper;
 
     @Autowired
@@ -49,12 +58,16 @@ public class ProductService {
             ApplicationEventPublisher eventPublisher,
             DiscountStrategyFactory discountStrategyFactory,
             CartDetailRepository cartDetailRepository,
+            OrderDetailRepository orderDetailRepository,
+            ReviewRepository reviewRepository,
             ProductMapper productMapper) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.eventPublisher = eventPublisher;
         this.discountStrategyFactory = discountStrategyFactory;
         this.cartDetailRepository = cartDetailRepository;
+        this.orderDetailRepository = orderDetailRepository;
+        this.reviewRepository = reviewRepository;
         this.productMapper = productMapper;
     }
 
@@ -66,8 +79,13 @@ public class ProductService {
 
     public Page<SimpleProductDTO> listProducts(String categorySlug, List<String> brandSlugs,
             BigDecimal minPrice, BigDecimal maxPrice,
-            List<ProductCondition> conditions,
+            String condition,
             String sort, int page, int size) {
+        List<ProductCondition> conditions = condition != null
+                ? Arrays.stream(condition.split(","))
+                        .map(ProductCondition::valueOf)
+                        .collect(Collectors.toList())
+                : Collections.emptyList();
 
         Specification<Product> spec = Specification.where(ProductSpecification.hasCategory(categorySlug))
                 .and(ProductSpecification.hasBrands(brandSlugs))
@@ -104,10 +122,17 @@ public class ProductService {
     }
 
     @Transactional
-    public DetailedProductDTO createProduct(Product product) {
+    public DetailedProductDTO createProduct(ProductUpsertRequest request) {
+        Product product = new Product();
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setQuantityAvailable(request.getQuantityAvailable());
+        product.setCondition(request.getCondition());
+        product.setConditionNotes(request.getConditionNotes());
 
         // Handle category logic
-        product.setCategory(categoryRepository.findById(product.getCategory().getId())
+        product.setCategory(categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found")));
 
         Product savedProduct = productRepository.save(product);
@@ -118,19 +143,25 @@ public class ProductService {
         return productRepository.findById(id);
     }
 
+    public boolean existsById(Long id) {
+        return productRepository.existsById(id);
+    }
+
     public Optional<DetailedProductDTO> getDetailedProductById(Long id) {
         return productRepository.findById(id).map(productMapper::toDetailedProductDTO);
     }
 
     @Transactional
-    public Optional<DetailedProductDTO> updateProduct(Long id, Product productDetails) {
+    public Optional<DetailedProductDTO> updateProduct(Long id, ProductUpsertRequest request) {
         return productRepository.findById(id).map(product -> {
-            product.setName(productDetails.getName());
-            product.setDescription(productDetails.getDescription());
-            product.setPrice(productDetails.getPrice());
-            product.setQuantityAvailable(productDetails.getQuantityAvailable());
-            product.setCategory(productDetails.getCategory());
-            product.setCondition(productDetails.getCondition());
+            product.setName(request.getName());
+            product.setDescription(request.getDescription());
+            product.setPrice(request.getPrice());
+            product.setQuantityAvailable(request.getQuantityAvailable());
+            product.setCategory(categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found")));
+            product.setCondition(request.getCondition());
+            product.setConditionNotes(request.getConditionNotes());
 
             Product updatedProduct = productRepository.save(product);
             eventPublisher.publishEvent(new ProductUpdateEvent(this, updatedProduct));
@@ -139,10 +170,9 @@ public class ProductService {
     }
 
     @Transactional
-    public Optional<DetailedProductDTO> partialUpdateProduct(Long id,
-            Map<String, Object> updates) {
+    public Optional<DetailedProductDTO> partialUpdateProduct(Long id, ProductPatchRequest request) {
         return productRepository.findById(id).map(product -> {
-            applyPartialUpdates(product, updates);
+            applyPartialUpdates(product, request);
 
             Product updatedProduct = productRepository.save(product);
             eventPublisher.publishEvent(new ProductUpdateEvent(this, updatedProduct));
@@ -150,12 +180,28 @@ public class ProductService {
         });
     }
 
-    private void applyPartialUpdates(Product product, Map<String, Object> updates) {
-        if (updates.containsKey("name")) {
-            product.setName((String) updates.get("name"));
+    private void applyPartialUpdates(Product product, ProductPatchRequest request) {
+        if (request.getName() != null) {
+            product.setName(request.getName());
         }
-        if (updates.containsKey("price")) {
-            product.setPrice(new BigDecimal(String.valueOf(updates.get("price"))));
+        if (request.getDescription() != null) {
+            product.setDescription(request.getDescription());
+        }
+        if (request.getPrice() != null) {
+            product.setPrice(request.getPrice());
+        }
+        if (request.getQuantityAvailable() != null) {
+            product.setQuantityAvailable(request.getQuantityAvailable());
+        }
+        if (request.getCategoryId() != null) {
+            product.setCategory(categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found")));
+        }
+        if (request.getCondition() != null) {
+            product.setCondition(request.getCondition());
+        }
+        if (request.getConditionNotes() != null) {
+            product.setConditionNotes(request.getConditionNotes());
         }
     }
 
@@ -163,6 +209,12 @@ public class ProductService {
     public void deleteProduct(Long id) {
         Optional<Product> productOpt = productRepository.findById(id);
         if (productOpt.isPresent()) {
+            if (orderDetailRepository.existsByProductId(id)) {
+                throw new ResourceInUseException("Cannot delete product with existing order history.");
+            }
+            if (reviewRepository.existsByProductId(id)) {
+                throw new ResourceInUseException("Cannot delete product with existing reviews.");
+            }
             Product product = productOpt.get();
             List<CartDetail> cartDetails = cartDetailRepository.findByProductId(id);
             cartDetailRepository.deleteAll(cartDetails);

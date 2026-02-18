@@ -1,10 +1,19 @@
 package com.musicshop.dto.user;
 
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
 public class UpdateUserRequest {
 
+    @NotBlank(message = "First name is required")
     private String firstName;
+    @NotBlank(message = "Last name is required")
     private String lastName;
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
     private String email;
+    @Size(max = 30, message = "Phone number is too long")
     private String phoneNumber;
 
     public String getFirstName() {

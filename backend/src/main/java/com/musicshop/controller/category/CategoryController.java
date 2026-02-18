@@ -1,41 +1,41 @@
 package com.musicshop.controller.category;
 
+import com.musicshop.application.category.CategoryUseCase;
 import com.musicshop.dto.category.CategoryDTO;
+import com.musicshop.dto.category.CreateCategoryRequest;
 import com.musicshop.dto.review.CategoryReviewsDTO;
-import com.musicshop.model.category.Category;
-import com.musicshop.service.category.CategoryService;
-import com.musicshop.service.review.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
 
-    private final CategoryService categoryService;
-    private final ReviewService reviewService;
+    private final CategoryUseCase categoryUseCase;
 
     @Autowired
-    public CategoryController(CategoryService categoryService, ReviewService reviewService) {
-        this.categoryService = categoryService;
-        this.reviewService = reviewService;
+    public CategoryController(CategoryUseCase categoryUseCase) {
+        this.categoryUseCase = categoryUseCase;
     }
 
     @GetMapping
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.findAllProperties());
+        return ResponseEntity.ok(categoryUseCase.listCategories());
     }
 
     @PostMapping
-    public ResponseEntity<Category> createCategory(
-            @RequestBody Category category,
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CategoryDTO> createCategory(
+            @Valid @RequestBody CreateCategoryRequest request,
             @RequestParam(required = false) Long parentId) {
 
-        Category createdCategory = categoryService.createCategory(category, parentId);
+        CategoryDTO createdCategory = categoryUseCase.createCategory(request, parentId);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
     }
 
@@ -51,7 +51,7 @@ public class CategoryController {
             @PathVariable String slug,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        CategoryReviewsDTO reviews = reviewService.getReviewsByCategory(slug, page, size);
+        CategoryReviewsDTO reviews = categoryUseCase.getCategoryReviews(slug, page, size);
         return ResponseEntity.ok(reviews);
     }
 }

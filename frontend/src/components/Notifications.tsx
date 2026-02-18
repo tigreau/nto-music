@@ -1,32 +1,19 @@
 import React from 'react';
 import { Bell, Check, Trash2, Loader2 } from 'lucide-react';
-import { useNotifications } from '../hooks/useNotifications';
-import { Button } from './ui/button';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils'; // Assuming utils exists (standard shadcn/ui)
+import { formatRelativeTime } from '@/lib/formatters';
 
 interface NotificationsProps {
     isAuthenticated: boolean;
-}
-
-const timeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
-function formatTimeAgo(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-
-    const diffInSeconds = (date.getTime() - now.getTime()) / 1000;
-
-    if (diffInSeconds > -60) return 'just now';
-    if (diffInSeconds > -3600) return timeFormatter.format(Math.round(diffInSeconds / 60), 'minute');
-    if (diffInSeconds > -86400) return timeFormatter.format(Math.round(diffInSeconds / 3600), 'hour');
-    return timeFormatter.format(Math.round(diffInSeconds / 86400), 'day');
 }
 
 export const Notifications: React.FC<NotificationsProps> = ({ isAuthenticated }) => {
@@ -102,7 +89,7 @@ export const Notifications: React.FC<NotificationsProps> = ({ isAuthenticated })
 
                                 <div className="flex items-center justify-between w-full mt-1">
                                     <span className="text-[10px] text-muted-foreground">
-                                        {formatTimeAgo(notification.timestamp)}
+                                        {formatRelativeTime(notification.timestamp)}
                                     </span>
                                     <div className="flex gap-1">
                                         {!notification.read && (

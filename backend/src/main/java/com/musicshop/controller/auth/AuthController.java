@@ -1,17 +1,21 @@
 package com.musicshop.controller.auth;
 
+import com.musicshop.application.auth.AuthUseCase;
 import com.musicshop.dto.auth.AuthResponse;
 import com.musicshop.dto.auth.LoginRequest;
 import com.musicshop.dto.auth.RegisterRequest;
-import com.musicshop.service.auth.AuthService;
-import com.musicshop.service.auth.AuthService.AuthResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -21,37 +25,45 @@ import java.time.Duration;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthUseCase authUseCase;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
+    public AuthController(AuthUseCase authUseCase) {
+        this.authUseCase = authUseCase;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResult result = authService.register(request);
+    @Operation(summary = "Register a new user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Validation failed")
+    })
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        AuthUseCase.AuthResult result = authUseCase.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, buildJwtCookie(result.getToken()).toString())
                 .body(result.getResponse());
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            AuthResult result = authService.login(request);
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, buildJwtCookie(result.getToken()).toString())
-                    .body(result.getResponse());
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        }
+    @Operation(summary = "Login user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Bad credentials")
+    })
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        AuthUseCase.AuthResult result = authUseCase.login(request);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, buildJwtCookie(result.getToken()).toString())
+                .body(result.getResponse());
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
+    @Operation(summary = "Logout current user")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> logout() {
         ResponseCookie clearCookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
                 .secure(false)
@@ -60,18 +72,23 @@ public class AuthController {
                 .sameSite("Strict")
                 .build();
 
-        return ResponseEntity.ok()
+        return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
-                .body("Logged out");
+                .build();
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> me(Authentication authentication) {
+    @Operation(summary = "Get authenticated user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required")
+    })
+    public ResponseEntity<AuthResponse> me(Authentication authentication) {
         if (authentication == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            throw new AuthenticationCredentialsNotFoundException("Authentication required");
         }
 
-        AuthResponse response = authService.getAuthenticatedUser(authentication.getName());
+        AuthResponse response = authUseCase.getAuthenticatedUser(authentication.getName());
         return ResponseEntity.ok(response);
     }
 

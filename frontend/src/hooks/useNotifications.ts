@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchJson } from '../api/client';
+import {
+    fetchJson,
+    markNotificationRead,
+    markAllNotificationsRead,
+    deleteNotification as deleteNotificationRequest,
+} from '@/api/client';
+import { createNotificationsEventSource } from '@/lib/notificationsStream';
 
 export interface Notification {
     id: number;
@@ -49,7 +55,7 @@ export function useNotifications(isAuthenticated: boolean) {
         // Backend is /api/notifications/stream. Frontend is / (proxied to api).
         // It should work.
 
-        const eventSource = new EventSource('/api/notifications/stream', { withCredentials: true });
+        const eventSource = createNotificationsEventSource('/api/notifications/stream');
 
         eventSource.onopen = () => {
             console.log("SSE Connected");
@@ -85,10 +91,7 @@ export function useNotifications(isAuthenticated: boolean) {
 
     const markAsRead = useCallback(async (id: number) => {
         try {
-            await fetch(`/api/notifications/${id}/read`, {
-                method: 'PATCH',
-                credentials: 'include'
-            });
+            await markNotificationRead(id);
 
             setNotifications(prev => prev.map(n =>
                 n.id === id ? { ...n, read: true } : n
@@ -101,10 +104,7 @@ export function useNotifications(isAuthenticated: boolean) {
 
     const markAllAsRead = useCallback(async () => {
         try {
-            await fetch(`/api/notifications/read-all`, {
-                method: 'PATCH',
-                credentials: 'include'
-            });
+            await markAllNotificationsRead();
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             setUnreadCount(0);
         } catch (e) {
@@ -114,10 +114,7 @@ export function useNotifications(isAuthenticated: boolean) {
 
     const deleteNotification = useCallback(async (id: number) => {
         try {
-            await fetch(`/api/notifications/${id}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
+            await deleteNotificationRequest(id);
 
             setNotifications(prev => {
                 const target = prev.find(n => n.id === id);

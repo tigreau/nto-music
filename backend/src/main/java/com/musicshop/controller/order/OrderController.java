@@ -1,33 +1,32 @@
 package com.musicshop.controller.order;
 
+import com.musicshop.application.order.CheckoutUseCase;
 import com.musicshop.dto.checkout.CheckoutRequest;
 import com.musicshop.dto.checkout.CheckoutResponse;
-import com.musicshop.model.user.User;
-import com.musicshop.service.checkout.CheckoutFacade;
-import com.musicshop.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    private final CheckoutFacade checkoutFacade;
-    private final UserService userService;
+    private final CheckoutUseCase checkoutUseCase;
 
     @Autowired
-    public OrderController(CheckoutFacade checkoutFacade, UserService userService) {
-        this.checkoutFacade = checkoutFacade;
-        this.userService = userService;
+    public OrderController(CheckoutUseCase checkoutUseCase) {
+        this.checkoutUseCase = checkoutUseCase;
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<CheckoutResponse> checkout(@RequestBody CheckoutRequest request,
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<CheckoutResponse> checkout(@Valid @RequestBody CheckoutRequest request,
                                                      Authentication authentication) {
-        User user = userService.findByEmail(authentication.getName());
-        CheckoutResponse response = checkoutFacade.checkout(user, request);
+        CheckoutResponse response = checkoutUseCase.checkout(authentication.getName(), request);
         return ResponseEntity.ok(response);
     }
 }

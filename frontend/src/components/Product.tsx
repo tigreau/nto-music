@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { useAddToCart } from '@/hooks/useApi';
+import { getApiErrorPolicy } from '@/lib/apiError';
 
 interface ProductData {
     id: number;
@@ -16,25 +18,23 @@ interface ProductProps {
 }
 
 const Product = ({ product, onProductClick, isAdmin }: ProductProps) => {
-    const addToCart = (e: React.MouseEvent, productId: number) => {
+    const addToCartMutation = useAddToCart();
+
+    const handleAddToCart = (e: React.MouseEvent, productId: number) => {
         e.stopPropagation();
 
-        fetch(`/api/carts/my/products/${productId}?quantity=1`, {
-            method: 'POST',
-            credentials: 'include'
-        })
-            .then(response => {
-                if (response.ok) {
-                    toast.success('Added to cart');
-                } else {
-                    return response.json().then(data => {
-                        toast.error(data.message || 'Failed to add item to cart');
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error adding item to cart:', error);
-            });
+        addToCartMutation.mutate(
+            { productId, quantity: 1 },
+            {
+                onSuccess: () => {
+                toast.success('Added to cart');
+                },
+                onError: (error) => {
+                    toast.error(getApiErrorPolicy(error).message);
+                    console.error('Error adding item to cart:', error);
+                },
+            },
+        );
     };
 
     return (
@@ -56,7 +56,7 @@ const Product = ({ product, onProductClick, isAdmin }: ProductProps) => {
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={(e) => addToCart(e, product.id)}
+                    onClick={(e) => handleAddToCart(e, product.id)}
                 >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Add to Cart

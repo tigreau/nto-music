@@ -1,14 +1,20 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/state/EmptyState';
+import { AsyncPageState } from '@/components/state/AsyncPageState';
 import { useCart } from "@/context/CartContext";
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { getCategoryImage } from "@/lib/categoryUtils";
-import { toast } from 'sonner';
+import { useDeleteCartItem } from '@/hooks/useApi';
+import { getApiErrorPolicy } from '@/lib/apiError';
+import { useMutationFeedback } from '@/hooks/useMutationFeedback';
 
 const CartPage = () => {
-    const { cartItems, refreshCart } = useCart();
+    const { cartItems, refreshCart, isLoading, cartError, clearCartError } = useCart();
     const navigate = useNavigate();
+    const deleteCartItemMutation = useDeleteCartItem();
+    const runWithFeedback = useMutationFeedback();
 
     // Refresh cart on mount to ensure prices are up to date
     useEffect(() => {
@@ -17,28 +23,20 @@ const CartPage = () => {
 
     // Calculate total price
     const totalPrice = cartItems.reduce((sum, item) => {
-        // Handle potential data structure mismatch if products property name varies slightly
-        // Context interface says `products` but API returns `product` for details?
-        // Let's assume the data flowing through is consistent with what the API returns.
-        // If context just passes through the API response, it should be fine.
-        const product = (item as any).product || (item as any).products; // Fallback
-        return sum + (product.price * item.quantity);
+        return sum + (item.product.price * item.quantity);
     }, 0);
 
-    const deleteCartItem = (cartItemId: number) => {
-        fetch(`/api/carts/details/${cartItemId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        })
-            .then(response => {
-                if (response.ok) {
-                    toast.success('Item removed from cart');
-                    refreshCart();
-                } else {
-                    toast.error('Failed to remove item');
-                }
-            })
-            .catch(error => console.error('Error deleting cart item:', error));
+    const deleteItem = (cartItemId: number) => {
+        void runWithFeedback(
+            () => deleteCartItemMutation.mutateAsync(cartItemId),
+            {
+                context: 'cart.deleteItem',
+                successMessage: 'Item removed from cart',
+                onSuccess: () => {
+                    void refreshCart();
+                },
+            },
+        );
     };
 
     const handleCheckout = () => {
@@ -61,23 +59,36 @@ const CartPage = () => {
 
             <div className="container mx-auto px-4 py-8">
                 <div className="max-w-4xl mx-auto">
-
-                    {cartItems.length === 0 ? (
-                        <div className="bg-card rounded-xl border border-border p-12 text-center">
-                            <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                            <h2 className="text-xl font-semibold text-foreground mb-2">Your cart is empty</h2>
-                            <p className="text-muted-foreground mb-6">Start shopping to add items to your cart.</p>
-                            <Button asChild>
-                                <a href="/">Browse Products</a>
-                            </Button>
-                        </div>
-                    ) : (
+                    <AsyncPageState
+                        isLoading={isLoading}
+                        isError={!!cartError}
+                        errorMessage={cartError ? getApiErrorPolicy(cartError).message : undefined}
+                        onRetry={() => {
+                            clearCartError();
+                            refreshCart();
+                        }}
+                        loadingMessage="Loading cart..."
+                        loadingClassName="min-h-[40vh]"
+                        empty={cartItems.length === 0}
+                        emptyState={
+                            <EmptyState
+                                title="Your cart is empty"
+                                description="Start shopping to add items to your cart."
+                                icon={<ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />}
+                                action={
+                                    <Button asChild>
+                                        <a href="/">Browse Products</a>
+                                    </Button>
+                                }
+                            />
+                        }
+                    >
                         <div className="space-y-4">
                             {/* Cart Items */}
                             <div className="bg-card rounded-xl border border-border overflow-hidden">
                                 <div className="divide-y divide-border">
                                     {cartItems.map(cartItem => {
-                                        const product = (cartItem as any).product || (cartItem as any).products;
+                                        const product = cartItem.product;
                                         const imageUrl = product.thumbnailUrl || getCategoryImage(product.category?.name);
 
                                         return (
@@ -120,7 +131,7 @@ const CartPage = () => {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                    onClick={() => deleteCartItem(cartItem.id)}
+                                                    onClick={() => deleteItem(cartItem.id)}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
@@ -159,7 +170,7 @@ const CartPage = () => {
                                 </Button>
                             </div>
                         </div>
-                    )}
+                    </AsyncPageState>
                 </div>
             </div>
         </div>

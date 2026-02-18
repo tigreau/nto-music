@@ -3,28 +3,10 @@ import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { getCategoryImage } from '@/lib/categoryUtils';
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-
-interface ProductImage {
-    id: number;
-    url: string;
-    altText: string;
-    isPrimary: boolean;
-    displayOrder: number;
-}
-
-interface Product {
-    id: number;
-    name: string;
-    price: number;
-    description?: string;
-    quantityAvailable?: number;
-    categoryName?: string;
-    condition?: string;
-    images?: ProductImage[];
-}
+import { DetailedProduct } from '@/types';
 
 interface ProductModalProps {
-    product: Product;
+    product: DetailedProduct;
     onClose: () => void;
     onAddToCart?: (productId: number) => void;
 }
@@ -88,7 +70,8 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                                 <Button
                                                     variant="secondary"
                                                     size="icon"
-                                                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md bg-foreground/50 hover:bg-foreground/70 text-background"
+                                                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-md bg-foreground/50 hover:bg-foreground/70 text-background"
+                                                    type="button"
                                                     onClick={(e) => { e.stopPropagation(); prevImage(); }}
                                                 >
                                                     <ChevronLeft className="w-5 h-5" />
@@ -96,7 +79,8 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                                 <Button
                                                     variant="secondary"
                                                     size="icon"
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md bg-foreground/50 hover:bg-foreground/70 text-background"
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-md bg-foreground/50 hover:bg-foreground/70 text-background"
+                                                    type="button"
                                                     onClick={(e) => { e.stopPropagation(); nextImage(); }}
                                                 >
                                                     <ChevronRight className="w-5 h-5" />

@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { Upload, X, Check, GripVertical, Star } from 'lucide-react';
-import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useRef, useState } from 'react';
+import { Upload, X, GripVertical, Star } from 'lucide-react';
+import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
-
-interface ProductImage {
-    id: number;
-    url: string;
-    altText: string;
-    isPrimary: boolean;
-    displayOrder: number;
-}
+import { getApiErrorPolicy } from '@/lib/apiError';
+import { normalizeImagesAfterDelete } from '@/components/admin/productImageState';
+import {
+    useDeleteProductImage,
+    useReorderProductImages,
+    useUploadProductImage,
+} from '@/hooks/useApi';
+import { ProductImage } from '@/types';
 
 interface Props {
     productId: number;
@@ -21,9 +21,21 @@ interface Props {
 
 export function ProductImageUpload({ productId, images, onImagesChange }: Props) {
     const [uploading, setUploading] = useState(false);
+    const [reordering, setReordering] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const uploadImageMutation = useUploadProductImage();
+    const deleteImageMutation = useDeleteProductImage();
+    const reorderImagesMutation = useReorderProductImages();
 
     // Sort images by displayOrder before rendering
     const sortedImages = [...images].sort((a, b) => a.displayOrder - b.displayOrder);
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 6,
+            },
+        }),
+    );
 
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
@@ -49,54 +61,25 @@ export function ProductImageUpload({ productId, images, onImagesChange }: Props)
     };
 
     const uploadImage = async (file: File, isPrimary: boolean) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('isPrimary', String(isPrimary));
-        formData.append('altText', file.name);
-
-        const response = await fetch(`/api/products/${productId}/images`, {
-            method: 'POST',
-            credentials: 'include',
-            body: formData,
-        });
-
-        if (!response.ok) {
-            let message = 'Upload failed';
-            try {
-                const data = await response.json();
-                message = data.message || message;
-            } catch {
-                // response wasn't JSON
-            }
-            toast.error(message);
-            throw new Error(message);
+        try {
+            return await uploadImageMutation.mutateAsync({ productId, file, altText: file.name, isPrimary });
+        } catch (error) {
+            toast.error(getApiErrorPolicy(error).message);
+            throw error;
         }
-        return await response.json();
     };
 
 
     const handleDelete = async (imageId: number) => {
-
-        await fetch(`/api/products/${productId}/images/${imageId}`, {
-            method: 'DELETE',
-            credentials: 'include',
-        });
-
-        onImagesChange(images.filter(img => img.id !== imageId));
-    };
-
-    const handleSetPrimary = async (imageId: number) => {
-        await fetch(`/api/products/${productId}/images/${imageId}/primary`, {
-            method: 'PATCH',
-            credentials: 'include',
-        });
-
-        onImagesChange(
-            images.map(img => ({
-                ...img,
-                isPrimary: img.id === imageId,
-            }))
-        );
+        try {
+            await deleteImageMutation.mutateAsync({ productId, imageId });
+            const nextImages = normalizeImagesAfterDelete(images, imageId);
+            onImagesChange(nextImages);
+            toast.success('Image deleted');
+        } catch (error) {
+            console.error('Failed to delete product image', error);
+            toast.error(getApiErrorPolicy(error).message);
+        }
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
@@ -104,34 +87,44 @@ export function ProductImageUpload({ productId, images, onImagesChange }: Props)
 
         if (!over || active.id === over.id) return;
 
-        const oldIndex = sortedImages.findIndex(img => img.id === active.id);
-        const newIndex = sortedImages.findIndex(img => img.id === over.id);
+        const oldIndex = sortedImages.findIndex(img => String(img.id) === String(active.id));
+        const newIndex = sortedImages.findIndex(img => String(img.id) === String(over.id));
+        if (oldIndex < 0 || newIndex < 0) return;
 
         const reorderedImages = arrayMove(sortedImages, oldIndex, newIndex);
 
         // Update displayOrder property for local state consistency
         const updatedImages = reorderedImages.map((img, index) => ({
             ...img,
-            displayOrder: index
+            displayOrder: index,
+            isPrimary: index === 0,
         }));
 
         onImagesChange(updatedImages);
 
-        // Save order to backend
-        await fetch(`/api/products/${productId}/images/reorder`, {
-            method: 'PUT',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reorderedImages.map(img => img.id)),
-        });
+        // Save order to backend; rollback local state if it fails.
+        setReordering(true);
+        try {
+            await reorderImagesMutation.mutateAsync({ productId, imageIds: reorderedImages.map(img => img.id) });
+            toast.success('Image order updated');
+        } catch (error) {
+            onImagesChange(sortedImages);
+            console.error('Failed to reorder product images', error);
+            toast.error(getApiErrorPolicy(error).message);
+        } finally {
+            setReordering(false);
+        }
     };
 
     return (
         <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+                Drag images to reorder. The first image becomes primary.
+            </p>
             {/* Upload Area */}
             <div
                 className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer bg-muted/30"
-                onClick={() => document.getElementById(`file-input-${productId}`)?.click()}
+                onClick={() => fileInputRef.current?.click()}
             >
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                 <p className="mt-2 text-sm text-foreground">
@@ -141,7 +134,7 @@ export function ProductImageUpload({ productId, images, onImagesChange }: Props)
                     PNG, JPG, WebP up to 10MB
                 </p>
                 <input
-                    id={`file-input-${productId}`}
+                    ref={fileInputRef}
                     type="file"
                     multiple
                     accept="image/*"
@@ -153,15 +146,14 @@ export function ProductImageUpload({ productId, images, onImagesChange }: Props)
 
             {/* Image Grid with DndContext */}
             {sortedImages.length > 0 && (
-                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={sortedImages.map(img => img.id)} strategy={verticalListSortingStrategy}>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={sortedImages.map(img => img.id)} strategy={rectSortingStrategy}>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {sortedImages.map((image) => (
                                 <SortableImage
                                     key={image.id}
                                     image={image}
                                     onDelete={handleDelete}
-                                    onSetPrimary={handleSetPrimary}
                                 />
                             ))}
                         </div>
@@ -175,14 +167,16 @@ export function ProductImageUpload({ productId, images, onImagesChange }: Props)
                     <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
                 </div>
             )}
+            {reordering && (
+                <p className="text-sm text-muted-foreground text-center">Saving image order...</p>
+            )}
         </div>
     );
 }
 
-function SortableImage({ image, onDelete, onSetPrimary }: {
+function SortableImage({ image, onDelete }: {
     image: ProductImage;
     onDelete: (id: number) => void;
-    onSetPrimary: (id: number) => void;
 }) {
     const {
         attributes,
@@ -208,9 +202,12 @@ function SortableImage({ image, onDelete, onSetPrimary }: {
         >
             {/* Drag Handle */}
             <button
+                type="button"
                 {...attributes}
                 {...listeners}
-                className="absolute top-2 left-2 z-10 p-1 bg-[#eee8d5]/80 rounded shadow cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.preventDefault()}
+                className="absolute top-2 left-2 z-10 p-1.5 bg-[#eee8d5]/90 rounded shadow cursor-grab active:cursor-grabbing touch-none"
+                title="Drag to reorder"
             >
                 <GripVertical className="h-4 w-4 text-foreground" />
             </button>
@@ -231,17 +228,9 @@ function SortableImage({ image, onDelete, onSetPrimary }: {
             )}
 
             {/* Actions */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                {!image.isPrimary && (
-                    <button
-                        onClick={() => onSetPrimary(image.id)}
-                        className="p-2 bg-[#eee8d5] rounded-full hover:bg-[#fdf6e3]"
-                        title="Set as primary"
-                    >
-                        <Check className="h-4 w-4 text-[#073642]" />
-                    </button>
-                )}
+            <div className="absolute bottom-2 right-2">
                 <button
+                    type="button"
                     onClick={() => onDelete(image.id)}
                     className="p-2 bg-[#eee8d5] rounded-full hover:bg-[#fdf6e3]"
                     title="Delete image"

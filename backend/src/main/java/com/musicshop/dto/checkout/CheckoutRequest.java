@@ -1,13 +1,21 @@
 package com.musicshop.dto.checkout;
 
+import javax.validation.constraints.NotBlank;
+
 public class CheckoutRequest {
 
+    @NotBlank
     private String paymentMethod;
     private String couponCode;
+    @NotBlank
     private String street;
+    @NotBlank
     private String number;
+    @NotBlank
     private String postalCode;
+    @NotBlank
     private String city;
+    @NotBlank
     private String country;
 
     public String getPaymentMethod() {

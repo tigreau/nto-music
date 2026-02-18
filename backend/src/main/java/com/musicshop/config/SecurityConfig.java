@@ -1,12 +1,15 @@
 package com.musicshop.config;
 
 import com.musicshop.security.JwtAuthenticationFilter;
+import com.musicshop.security.RestAccessDeniedHandler;
+import com.musicshop.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,12 +25,20 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+            RestAccessDeniedHandler restAccessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+        this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
 
     @Bean
@@ -37,12 +48,26 @@ public class SecurityConfig {
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
+                .exceptionHandling()
+                .authenticationEntryPoint(restAuthenticationEntryPoint)
+                .accessDeniedHandler(restAccessDeniedHandler)
+                .and()
                 .authorizeRequests()
                 // Public endpoints
                 .antMatchers("/api/auth/**").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/brands/**").permitAll()
+                // Admin-only mutating endpoints
+                .antMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PATCH, "/api/products/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.POST, "/api/products/*/images/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PUT, "/api/products/*/images/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PATCH, "/api/products/*/images/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.DELETE, "/api/products/*/images/**").hasRole("ADMIN")
                 // Swagger UI
                 .antMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 // SSE (authenticated, but might need specific config for event stream if using

@@ -1,34 +1,39 @@
 package com.musicshop.controller.product;
 
 import com.musicshop.dto.product.DetailedProductDTO;
+import com.musicshop.dto.product.ProductPatchRequest;
+import com.musicshop.dto.product.ProductUpsertRequest;
 import com.musicshop.dto.product.SimpleProductDTO;
 
-import com.musicshop.model.product.Product;
-import com.musicshop.model.product.ProductCondition;
-import com.musicshop.service.product.ProductService;
+import com.musicshop.application.product.ProductUseCase;
+import com.musicshop.exception.ResourceNotFoundException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
+@Validated
 public class ProductController {
 
-    private final ProductService productService;
+    private final ProductUseCase productUseCase;
 
     @Autowired
-    public ProductController(ProductService productService) {
-        this.productService = productService;
+    public ProductController(ProductUseCase productUseCase) {
+        this.productUseCase = productUseCase;
     }
 
     /**
@@ -53,62 +58,61 @@ public class ProductController {
                 ? Arrays.asList(brand.split(","))
                 : Collections.emptyList();
 
-        List<ProductCondition> conditions = condition != null
-                ? Arrays.stream(condition.split(","))
-                        .map(ProductCondition::valueOf)
-                        .collect(Collectors.toList())
-                : Collections.emptyList();
-
-        Page<SimpleProductDTO> products = productService.listProducts(
-                category, brandSlugs, minPrice, maxPrice, conditions, sort, page, size);
+        Page<SimpleProductDTO> products = productUseCase.listProducts(
+                category, brandSlugs, minPrice, maxPrice, condition, sort, page, size);
 
         return ResponseEntity.ok(products);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<DetailedProductDTO> getProductById(@PathVariable Long id) {
-        return productService.getDetailedProductById(id)
+        return productUseCase.getDetailedProductById(id)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
     @PostMapping
-    public ResponseEntity<DetailedProductDTO> createProduct(@Valid @RequestBody Product product) {
-        DetailedProductDTO newProduct = productService.createProduct(product);
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DetailedProductDTO> createProduct(@Valid @RequestBody ProductUpsertRequest request) {
+        DetailedProductDTO newProduct = productUseCase.createProduct(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DetailedProductDTO> updateProduct(@PathVariable Long id,
-            @RequestBody Product productDetails) {
-        return productService.updateProduct(id, productDetails)
+            @Valid @RequestBody ProductUpsertRequest request) {
+        return productUseCase.updateProduct(id, request)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DetailedProductDTO> partialUpdateProduct(@PathVariable Long id,
-            @RequestBody Map<String, Object> updates) {
-        return productService.partialUpdateProduct(id, updates)
+            @Valid @RequestBody ProductPatchRequest request) {
+        return productUseCase.partialUpdateProduct(id, request)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
-        boolean exists = productService.getProductById(id).isPresent();
-        if (exists) {
-            productService.deleteProduct(id);
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete product")
+    @ApiResponse(responseCode = "204", description = "No Content")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        if (!productUseCase.existsById(id)) {
+            throw new ResourceNotFoundException("Product not found");
         }
+        productUseCase.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/apply-discount")
-    public ResponseEntity<?> applyDiscount(@PathVariable Long id, @RequestParam String discountType) {
-        return productService.applyDiscount(id, discountType)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DetailedProductDTO> applyDiscount(@PathVariable Long id, @RequestParam @NotBlank String discountType) {
+        return productUseCase.applyDiscount(id, discountType)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 }
