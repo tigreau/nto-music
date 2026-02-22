@@ -7,7 +7,6 @@ import com.musicshop.repository.product.ProductRepository;
 import com.musicshop.repository.review.ReviewRepository;
 
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class ReviewSeeder implements DataSeeder {
@@ -23,7 +22,6 @@ public class ReviewSeeder implements DataSeeder {
     }
 
     @Override
-    @Transactional
     public void seed() {
         if (reviewRepository.count() > 0)
             return;

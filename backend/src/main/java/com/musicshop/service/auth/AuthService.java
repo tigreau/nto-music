@@ -5,6 +5,7 @@ import com.musicshop.dto.auth.LoginRequest;
 import com.musicshop.dto.auth.RegisterRequest;
 import com.musicshop.exception.DuplicateResourceException;
 import com.musicshop.exception.ResourceNotFoundException;
+import com.musicshop.mapper.AuthMapper;
 import com.musicshop.model.cart.Cart;
 import com.musicshop.model.user.User;
 import com.musicshop.model.user.UserRole;
@@ -26,16 +27,19 @@ public class AuthService {
     private final CartRepository cartRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthMapper authMapper;
 
     @Autowired
     public AuthService(UserRepository userRepository,
                        CartRepository cartRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       AuthMapper authMapper) {
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.authMapper = authMapper;
     }
 
     @Transactional
@@ -58,7 +62,7 @@ public class AuthService {
         cartRepository.save(cart);
 
         String token = jwtService.generateToken(user);
-        AuthResponse response = toAuthResponse(user);
+        AuthResponse response = toAuthResponse(user, token);
 
         return new AuthResult(response, token);
     }
@@ -71,7 +75,7 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(user);
-        AuthResponse response = toAuthResponse(user);
+        AuthResponse response = toAuthResponse(user, token);
 
         return new AuthResult(response, token);
     }
@@ -79,13 +83,11 @@ public class AuthService {
     public AuthResponse getAuthenticatedUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return toAuthResponse(user);
+        return toAuthResponse(user, null);
     }
 
-    private AuthResponse toAuthResponse(User user) {
-        return new AuthResponse(
-                null, user.getId(), user.getEmail(), user.getFirstName(),
-                user.getLastName(), user.getRole().name());
+    private AuthResponse toAuthResponse(User user, String token) {
+        return authMapper.toAuthResponse(user, token);
     }
 
     public static class AuthResult {

@@ -15,35 +15,19 @@ public class AuthUseCase {
         this.authService = authService;
     }
 
-    public AuthResult register(RegisterRequest request) {
-        AuthService.AuthResult result = authService.register(request);
-        return new AuthResult(result.getResponse(), result.getToken());
+    public AuthResponse register(RegisterRequest request) {
+        return authService.register(request).getResponse();
     }
 
-    public AuthResult login(LoginRequest request) {
-        AuthService.AuthResult result = authService.login(request);
-        return new AuthResult(result.getResponse(), result.getToken());
+    public AuthResponse login(LoginRequest request) {
+        return authService.login(request).getResponse();
     }
 
     public AuthResponse getAuthenticatedUser(String email) {
         return authService.getAuthenticatedUser(email);
     }
 
-    public static class AuthResult {
-        private final AuthResponse response;
-        private final String token;
-
-        public AuthResult(AuthResponse response, String token) {
-            this.response = response;
-            this.token = token;
-        }
-
-        public AuthResponse getResponse() {
-            return response;
-        }
-
-        public String getToken() {
-            return token;
-        }
+    public void logout() {
+        // The current logout behavior is stateless (cookie invalidation only).
     }
 }

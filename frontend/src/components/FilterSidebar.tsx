@@ -18,7 +18,7 @@ interface FilterSidebarProps {
     onSubcategoryChange?: (slug: string | undefined) => void;
 }
 
-const ALL_CONDITIONS: ProductCondition[] = ['NEW', 'EXCELLENT', 'VERY_GOOD', 'GOOD', 'FAIR'];
+const ALL_CONDITIONS: ProductCondition[] = ['EXCELLENT', 'GOOD', 'FAIR'];
 const VISIBLE_LIMIT = 5;
 
 function CollapsibleList({

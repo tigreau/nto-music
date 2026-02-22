@@ -41,10 +41,10 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Validation failed")
     })
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthUseCase.AuthResult result = authUseCase.register(request);
+        AuthResponse response = authUseCase.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .header(HttpHeaders.SET_COOKIE, buildJwtCookie(result.getToken()).toString())
-                .body(result.getResponse());
+                .header(HttpHeaders.SET_COOKIE, buildJwtCookie(response.getToken()).toString())
+                .body(response);
     }
 
     @PostMapping("/login")
@@ -54,16 +54,17 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthUseCase.AuthResult result = authUseCase.login(request);
+        AuthResponse response = authUseCase.login(request);
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, buildJwtCookie(result.getToken()).toString())
-                .body(result.getResponse());
+                .header(HttpHeaders.SET_COOKIE, buildJwtCookie(response.getToken()).toString())
+                .body(response);
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Logout current user")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> logout() {
+        authUseCase.logout();
         ResponseCookie clearCookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
                 .secure(false)

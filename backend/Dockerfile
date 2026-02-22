@@ -16,6 +16,7 @@ WORKDIR /app
 
 # Pull in the “fat” JAR from builder
 COPY --from=build /app/target/nto-backend-1.0-SNAPSHOT.jar ./app.jar
+RUN apk add --no-cache curl
 EXPOSE 8080
 
 # Defaults (override in docker-compose)

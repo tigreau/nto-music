@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { User, Save, Mail, Phone } from 'lucide-react';
+import { User, Save, Mail, Phone, MapPin } from 'lucide-react';
 import { EmptyState } from '@/components/state/EmptyState';
 import { AsyncPageState } from '@/components/state/AsyncPageState';
 import { useUpdateUserProfile, useUserProfile } from '@/hooks/useApi';
@@ -11,7 +11,17 @@ import { UserProfile } from '@/types';
 import { useMutationFeedback } from '@/hooks/useMutationFeedback';
 
 const UserProfilePage = () => {
-    const [user, setUser] = useState<UserProfile>({ firstName: '', lastName: '', email: '', phoneNumber: '' });
+    const [user, setUser] = useState<UserProfile>({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        street: '',
+        number: '',
+        postalCode: '',
+        city: '',
+        country: '',
+    });
     const [isSaving, setIsSaving] = useState(false);
     const { user: authUser } = useAuth();
     const customerId = authUser?.userId;
@@ -148,6 +158,67 @@ const UserProfilePage = () => {
                                     onChange={handleInputChange}
                                     placeholder="Phone Number"
                                 />
+                            </div>
+
+                            <div className="pt-2 border-t border-border">
+                                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
+                                    <MapPin className="w-4 h-4" />
+                                    Address
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="sm:col-span-2 space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Street</label>
+                                        <Input
+                                            type="text"
+                                            name="street"
+                                            value={user.street}
+                                            onChange={handleInputChange}
+                                            placeholder="Main Street"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Number</label>
+                                        <Input
+                                            type="text"
+                                            name="number"
+                                            value={user.number}
+                                            onChange={handleInputChange}
+                                            placeholder="42A"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Postal Code</label>
+                                        <Input
+                                            type="text"
+                                            name="postalCode"
+                                            value={user.postalCode}
+                                            onChange={handleInputChange}
+                                            placeholder="10001"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">City</label>
+                                        <Input
+                                            type="text"
+                                            name="city"
+                                            value={user.city}
+                                            onChange={handleInputChange}
+                                            placeholder="Amsterdam"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Country</label>
+                                        <Input
+                                            type="text"
+                                            name="country"
+                                            value={user.country}
+                                            onChange={handleInputChange}
+                                            placeholder="Netherlands"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="pt-4">

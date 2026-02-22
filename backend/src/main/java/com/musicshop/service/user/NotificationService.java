@@ -2,7 +2,10 @@ package com.musicshop.service.user;
 
 import com.musicshop.event.product.ProductDeletionEvent;
 import com.musicshop.event.product.ProductDiscountEvent;
+import com.musicshop.dto.user.NotificationDTO;
 import com.musicshop.exception.ResourceNotFoundException;
+import com.musicshop.service.notification.NotificationBroker;
+import com.musicshop.mapper.NotificationMapper;
 import com.musicshop.model.product.Product;
 import com.musicshop.event.product.ProductUpdateEvent;
 import com.musicshop.model.cart.CartDetail;
@@ -12,7 +15,6 @@ import com.musicshop.model.user.User;
 import com.musicshop.repository.cart.CartDetailRepository;
 import com.musicshop.repository.user.NotificationRepository;
 import com.musicshop.repository.user.UserRepository;
-import com.musicshop.service.notification.NotificationSseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class NotificationService {
@@ -33,18 +36,21 @@ public class NotificationService {
     private final CartDetailRepository cartDetailRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private final NotificationSseService sseService;
+    private final NotificationBroker sseBroker;
+    private final NotificationMapper notificationMapper;
 
     @Autowired
     public NotificationService(
             CartDetailRepository cartDetailRepository,
             NotificationRepository notificationRepository,
             UserRepository userRepository,
-            NotificationSseService sseService) {
+            NotificationBroker sseBroker,
+            NotificationMapper notificationMapper) {
         this.cartDetailRepository = cartDetailRepository;
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
-        this.sseService = sseService;
+        this.sseBroker = sseBroker;
+        this.notificationMapper = notificationMapper;
     }
 
     @TransactionalEventListener
@@ -129,7 +135,7 @@ public class NotificationService {
             notification.setRead(false);
 
             Notification saved = notificationRepository.save(notification);
-            sseService.sendToUser(user.getId(), saved);
+            sseBroker.sendToUser(user.getId(), saved);
         } catch (Exception e) {
             logger.error("Failed to send notification to user {}: {}", user.getId(), e.getMessage());
         }
@@ -138,6 +144,13 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<Notification> getNotificationsForUser(User user) {
         return notificationRepository.findByUserOrderByTimestampDesc(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationDTO> getNotificationDTOsForUserId(Long userId) {
+        return notificationRepository.findByUserIdOrderByTimestampDesc(userId).stream()
+                .map(notificationMapper::toNotificationDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -155,10 +168,18 @@ public class NotificationService {
         notificationRepository.saveAll(unread);
     }
 
+    @Transactional
+    public void markAllAsReadByUserId(Long userId) {
+        List<Notification> unread = notificationRepository.findByUserIdAndIsReadFalse(userId);
+        unread.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(unread);
+    }
+
     public void deleteNotification(Long notificationId) {
         if (!notificationRepository.existsById(notificationId)) {
             throw new ResourceNotFoundException("Notification not found");
         }
         notificationRepository.deleteById(notificationId);
     }
+
 }

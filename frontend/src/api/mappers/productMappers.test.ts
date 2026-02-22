@@ -8,7 +8,7 @@ describe('product mappers', () => {
         id: 1,
         slug: 'slug-only',
         price: 100,
-        condition: 'NEW',
+        condition: 'EXCELLENT',
       }),
     ).toThrow('product.name');
   });
@@ -20,7 +20,7 @@ describe('product mappers', () => {
   it('throws when page content item is invalid', () => {
     expect(() =>
       mapProductsPage({
-        content: [{ id: 1, name: 'x', slug: 'x', condition: 'NEW' }],
+        content: [{ id: 1, name: 'x', slug: 'x', condition: 'EXCELLENT' }],
       }),
     ).toThrow('product.price');
   });

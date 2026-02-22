@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/state/EmptyState';
 import { AsyncPageState } from '@/components/state/AsyncPageState';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { getApiErrorPolicy } from '@/lib/apiError';
 import { getCategoryImage } from '@/lib/categoryUtils';
 import { CreditCard, ShoppingBag, MapPin, ChevronLeft, CheckCircle } from 'lucide-react';
-import { useCheckout } from '@/hooks/useApi';
+import { useCheckout, useUserProfile } from '@/hooks/useApi';
 import { CheckoutResult } from '@/types';
 import { useMutationFeedback } from '@/hooks/useMutationFeedback';
 
@@ -17,10 +18,19 @@ const SHIPPING_FEE = 5.99;
 
 const CheckoutPage = () => {
     const { cartItems, refreshCart, isLoading, cartError, clearCartError } = useCart();
+    const { user: authUser } = useAuth();
     const navigate = useNavigate();
     const checkoutMutation = useCheckout();
+    const { data: profileData } = useUserProfile(authUser?.userId);
     const runWithFeedback = useMutationFeedback();
     const isMountedRef = useRef(true);
+
+    const [contact, setContact] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+    });
 
     const [address, setAddress] = useState({
         street: '',
@@ -30,6 +40,7 @@ const CheckoutPage = () => {
         country: '',
     });
     const [paymentMethod, setPaymentMethod] = useState('credit_card');
+    const [couponCode, setCouponCode] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [orderResult, setOrderResult] = useState<CheckoutResult | null>(null);
@@ -41,6 +52,26 @@ const CheckoutPage = () => {
             isMountedRef.current = false;
         };
     }, [refreshCart]);
+
+    useEffect(() => {
+        setContact({
+            firstName: profileData?.firstName || authUser?.firstName || '',
+            lastName: profileData?.lastName || authUser?.lastName || '',
+            email: profileData?.email || authUser?.email || '',
+            phoneNumber: profileData?.phoneNumber || '',
+        });
+    }, [profileData, authUser]);
+
+    useEffect(() => {
+        if (!profileData) return;
+        setAddress((prev) => ({
+            street: prev.street || profileData.street || '',
+            number: prev.number || profileData.number || '',
+            postalCode: prev.postalCode || profileData.postalCode || '',
+            city: prev.city || profileData.city || '',
+            country: prev.country || profileData.country || '',
+        }));
+    }, [profileData]);
 
     const subtotal = cartItems.reduce((sum, item) => {
         return sum + (item.product.price * item.quantity);
@@ -63,6 +94,7 @@ const CheckoutPage = () => {
         const result = await runWithFeedback(
             () => checkoutMutation.mutateAsync({
                     paymentMethod,
+                    couponCode: couponCode.trim() || undefined,
                     street: address.street,
                     number: address.number,
                     postalCode: address.postalCode,
@@ -188,6 +220,54 @@ const CheckoutPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Left column: forms */}
                         <div className="lg:col-span-2 space-y-6">
+                            {/* Contact Information */}
+                            <div className="bg-card rounded-xl border border-border p-6">
+                                <h2 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                                    <CreditCard className="w-5 h-5 text-[#268bd2]" />
+                                    Contact Information
+                                </h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">First Name</label>
+                                        <Input
+                                            value={contact.firstName}
+                                            onChange={(e) => setContact((prev) => ({ ...prev, firstName: e.target.value }))}
+                                            placeholder="First Name"
+                                            autoComplete="given-name"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Last Name</label>
+                                        <Input
+                                            value={contact.lastName}
+                                            onChange={(e) => setContact((prev) => ({ ...prev, lastName: e.target.value }))}
+                                            placeholder="Last Name"
+                                            autoComplete="family-name"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Email</label>
+                                        <Input
+                                            value={contact.email}
+                                            onChange={(e) => setContact((prev) => ({ ...prev, email: e.target.value }))}
+                                            placeholder="Email"
+                                            autoComplete="email"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">Phone</label>
+                                        <Input
+                                            value={contact.phoneNumber}
+                                            onChange={(e) => setContact((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                                            placeholder="Phone Number"
+                                            autoComplete="tel"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Shipping Address */}
                             <div className="bg-card rounded-xl border border-border p-6">
                                 <h2 className="font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -203,6 +283,7 @@ const CheckoutPage = () => {
                                                 value={address.street}
                                                 onChange={handleAddressChange}
                                                 placeholder="Main Street"
+                                                autoComplete="address-line1"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -212,6 +293,7 @@ const CheckoutPage = () => {
                                                 value={address.number}
                                                 onChange={handleAddressChange}
                                                 placeholder="42A"
+                                                autoComplete="address-line2"
                                             />
                                         </div>
                                     </div>
@@ -223,6 +305,7 @@ const CheckoutPage = () => {
                                                 value={address.postalCode}
                                                 onChange={handleAddressChange}
                                                 placeholder="10001"
+                                                autoComplete="postal-code"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -232,6 +315,7 @@ const CheckoutPage = () => {
                                                 value={address.city}
                                                 onChange={handleAddressChange}
                                                 placeholder="Amsterdam"
+                                                autoComplete="address-level2"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -241,6 +325,7 @@ const CheckoutPage = () => {
                                                 value={address.country}
                                                 onChange={handleAddressChange}
                                                 placeholder="Netherlands"
+                                                autoComplete="country-name"
                                             />
                                         </div>
                                     </div>
@@ -276,6 +361,14 @@ const CheckoutPage = () => {
                                         <div className="font-medium text-foreground">PayPal</div>
                                         <div className="text-sm text-muted-foreground">Pay with your PayPal account</div>
                                     </button>
+                                </div>
+                                <div className="mt-4 space-y-2">
+                                    <label className="text-sm font-medium text-foreground">Coupon Code (Optional)</label>
+                                    <Input
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value)}
+                                        placeholder="SAVE10"
+                                    />
                                 </div>
                             </div>
                         </div>

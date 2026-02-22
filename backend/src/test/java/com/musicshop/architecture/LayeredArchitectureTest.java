@@ -1,6 +1,7 @@
 package com.musicshop.architecture;
 
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaConstructorCall;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.validation.Valid;
 import java.util.Map;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
@@ -76,8 +78,7 @@ class LayeredArchitectureTest {
             .should().dependOnClassesThat().resideInAnyPackage(
                     "com.musicshop.service..",
                     "com.musicshop.controller..",
-                    "com.musicshop.repository.."
-            );
+                    "com.musicshop.repository..");
 
     @ArchTest
     static final ArchRule controllers_should_not_expose_model_types_in_signatures = methods()
@@ -85,23 +86,12 @@ class LayeredArchitectureTest {
             .should(notUseModelTypesInSignature());
 
     @ArchTest
-    static final ArchRule transactional_class_annotations_should_be_limited_to_app_and_service_layers = noClasses()
-            .that().areNotAssignableTo(Throwable.class)
-            .and().resideOutsideOfPackages(
-                    "com.musicshop.service..",
-                    "com.musicshop.application..",
-                    "com.musicshop.data.seeder.."
-            )
-            .should().beAnnotatedWith(Transactional.class);
-
-    @ArchTest
-    static final ArchRule transactional_method_annotations_should_be_limited_to_app_and_service_layers = methods()
+    static final ArchRule transactional_methods_should_be_public_and_in_service = methods()
             .that().areAnnotatedWith(Transactional.class)
-            .should().beDeclaredInClassesThat().resideInAnyPackage(
-                    "com.musicshop.service..",
-                    "com.musicshop.application..",
-                    "com.musicshop.data.seeder.."
-            );
+            .should().bePublic()
+            .andShould()
+            .beDeclaredInClassesThat().resideInAnyPackage(
+                    "com.musicshop.service..");
 
     @ArchTest
     static final ArchRule no_cycles_in_core_packages = SlicesRuleDefinition.slices()
@@ -140,6 +130,46 @@ class LayeredArchitectureTest {
             .that().areDeclaredInClassesThat().resideInAPackage("com.musicshop.controller..")
             .should(notUseUntypedRequestBodyContracts());
 
+    // ── Ports Direction Enforcement ──────────────────────────────────────
+
+    @ArchTest
+    static final ArchRule services_must_depend_on_interfaces_not_concrete_infra = classes()
+            .that().resideInAnyPackage("com.musicshop.service..", "com.musicshop.application..")
+            .should(onlyDependOnInfraInterfaces());
+
+    @ArchTest
+    static final ArchRule only_infrastructure_may_implement_infra_interfaces = classes()
+            .that().implement(JavaClass.Predicates.resideInAPackage("com.musicshop.infrastructure.."))
+            .should().resideInAPackage("com.musicshop.infrastructure..")
+            .allowEmptyShould(true);
+
+    // ── Transaction Policy Hardening ─────────────────────────────────────
+
+    @ArchTest
+    static final ArchRule transactional_must_not_appear_in_controllers = methods()
+            .that().areAnnotatedWith(Transactional.class)
+            .should().beDeclaredInClassesThat()
+            .resideOutsideOfPackage("com.musicshop.controller..");
+
+    @ArchTest
+    static final ArchRule transactional_must_not_appear_in_application_layer = methods()
+            .that().areAnnotatedWith(Transactional.class)
+            .should().beDeclaredInClassesThat()
+            .resideOutsideOfPackage("com.musicshop.application..");
+
+    // ── Mapper Strictness ────────────────────────────────────────────────
+
+    @ArchTest
+    static final ArchRule dto_construction_only_in_mapper_or_dto_package = methods()
+            .that().areDeclaredInClassesThat().resideInAPackage("com.musicshop..")
+            .should(notConstructDtosOutsideMapperOrDtoPackages());
+
+    @ArchTest
+    static final ArchRule mappers_must_not_depend_on_services_or_controllers = noClasses()
+            .that().resideInAPackage("com.musicshop.mapper..")
+            .should().dependOnClassesThat()
+            .resideInAnyPackage("com.musicshop.service..", "com.musicshop.controller..");
+
     private static ArchCondition<JavaMethod> notUseModelTypesInSignature() {
         return new ArchCondition<>("not use com.musicshop.model types in parameter or return signatures") {
             @Override
@@ -148,24 +178,21 @@ class LayeredArchitectureTest {
                 if (returnType.getPackageName().startsWith("com.musicshop.model")) {
                     events.add(SimpleConditionEvent.violated(
                             method,
-                            method.getFullName() + " has model return type: " + returnType.getName()
-                    ));
+                            method.getFullName() + " has model return type: " + returnType.getName()));
                 }
 
                 String fullReturnType = method.getReturnType().getName();
                 if (fullReturnType.contains("com.musicshop.model.")) {
                     events.add(SimpleConditionEvent.violated(
                             method,
-                            method.getFullName() + " has model type in return signature: " + fullReturnType
-                    ));
+                            method.getFullName() + " has model type in return signature: " + fullReturnType));
                 }
 
                 method.getRawParameterTypes().forEach(parameterType -> {
                     if (parameterType.getPackageName().startsWith("com.musicshop.model")) {
                         events.add(SimpleConditionEvent.violated(
                                 method,
-                                method.getFullName() + " has model parameter type: " + parameterType.getName()
-                        ));
+                                method.getFullName() + " has model parameter type: " + parameterType.getName()));
                     }
                 });
 
@@ -174,8 +201,7 @@ class LayeredArchitectureTest {
                     if (fullParameterType.contains("com.musicshop.model.")) {
                         events.add(SimpleConditionEvent.violated(
                                 method,
-                                method.getFullName() + " has model type in parameter signature: " + fullParameterType
-                        ));
+                                method.getFullName() + " has model type in parameter signature: " + fullParameterType));
                     }
                 });
             }
@@ -194,8 +220,7 @@ class LayeredArchitectureTest {
                 if (mutating && !method.isAnnotatedWith(PreAuthorize.class)) {
                     events.add(SimpleConditionEvent.violated(
                             method,
-                            method.getFullName() + " is mutating and must declare @PreAuthorize"
-                    ));
+                            method.getFullName() + " is mutating and must declare @PreAuthorize"));
                 }
             }
         };
@@ -205,7 +230,8 @@ class LayeredArchitectureTest {
         return new ArchCondition<>("annotate @RequestBody parameters with @Valid on POST/PUT methods") {
             @Override
             public void check(JavaMethod method, ConditionEvents events) {
-                boolean postOrPut = method.isAnnotatedWith(PostMapping.class) || method.isAnnotatedWith(PutMapping.class);
+                boolean postOrPut = method.isAnnotatedWith(PostMapping.class)
+                        || method.isAnnotatedWith(PutMapping.class);
                 if (!postOrPut) {
                     return;
                 }
@@ -217,8 +243,7 @@ class LayeredArchitectureTest {
                     if (requestBody && !hasValid) {
                         events.add(SimpleConditionEvent.violated(
                                 method,
-                                method.getFullName() + " has @RequestBody parameter without @Valid on POST/PUT"
-                        ));
+                                method.getFullName() + " has @RequestBody parameter without @Valid on POST/PUT"));
                     }
                 });
             }
@@ -236,8 +261,7 @@ class LayeredArchitectureTest {
                 if (!method.isAnnotatedWith(PreAuthorize.class)) {
                     events.add(SimpleConditionEvent.violated(
                             method,
-                            method.getFullName() + " has sensitive path variable and must declare @PreAuthorize"
-                    ));
+                            method.getFullName() + " has sensitive path variable and must declare @PreAuthorize"));
                     return;
                 }
 
@@ -245,8 +269,7 @@ class LayeredArchitectureTest {
                 if (!expression.contains("@accessGuard.canAccess")) {
                     events.add(SimpleConditionEvent.violated(
                             method,
-                            method.getFullName() + " must use accessGuard ownership check in @PreAuthorize"
-                    ));
+                            method.getFullName() + " must use accessGuard ownership check in @PreAuthorize"));
                 }
             }
         };
@@ -255,10 +278,9 @@ class LayeredArchitectureTest {
     private static boolean hasSensitivePathVariable(JavaMethod method) {
         return method.getAnnotations().stream()
                 .map(Object::toString)
-                .anyMatch(annotationDescription ->
-                        annotationDescription.contains("{userId}")
-                                || annotationDescription.contains("{detailId}")
-                                || annotationDescription.contains("{notificationId}"));
+                .anyMatch(annotationDescription -> annotationDescription.contains("{userId}")
+                        || annotationDescription.contains("{detailId}")
+                        || annotationDescription.contains("{notificationId}"));
     }
 
     private static ArchCondition<JavaMethod> notBuildErrorResponseEntitiesDirectly() {
@@ -288,8 +310,7 @@ class LayeredArchitectureTest {
                         events.add(SimpleConditionEvent.violated(
                                 method,
                                 method.getFullName()
-                                        + " builds error ResponseEntity directly; throw exceptions and let GlobalExceptionHandler map errors"
-                        ));
+                                        + " builds error ResponseEntity directly; throw exceptions and let GlobalExceptionHandler map errors"));
                     }
                 }
             }
@@ -305,8 +326,7 @@ class LayeredArchitectureTest {
                         || returnType.contains("org.springframework.http.ResponseEntity<?>")) {
                     events.add(SimpleConditionEvent.violated(
                             method,
-                            method.getFullName() + " uses wildcard ResponseEntity<?> return type"
-                    ));
+                            method.getFullName() + " uses wildcard ResponseEntity<?> return type"));
                 }
             }
         };
@@ -324,15 +344,67 @@ class LayeredArchitectureTest {
                     JavaClass rawType = parameter.getRawType();
                     String fullType = parameter.getType().getName();
                     boolean rawObject = "java.lang.Object".equals(rawType.getName());
-                    boolean rawMap = Map.class.getName().equals(rawType.getName()) || fullType.startsWith("java.util.Map<");
+                    boolean rawMap = Map.class.getName().equals(rawType.getName())
+                            || fullType.startsWith("java.util.Map<");
 
                     if (rawObject || rawMap) {
                         events.add(SimpleConditionEvent.violated(
                                 method,
-                                method.getFullName() + " uses untyped @RequestBody contract: " + fullType
-                        ));
+                                method.getFullName() + " uses untyped @RequestBody contract: " + fullType));
                     }
                 });
+            }
+        };
+    }
+
+    private static ArchCondition<JavaClass> onlyDependOnInfraInterfaces() {
+        return new ArchCondition<>("only depend on infrastructure interfaces, not concrete adapter classes") {
+            @Override
+            public void check(JavaClass clazz, ConditionEvents events) {
+                clazz.getDirectDependenciesFromSelf().forEach(dependency -> {
+                    JavaClass target = dependency.getTargetClass();
+                    if (!target.getPackageName().startsWith("com.musicshop.infrastructure")) {
+                        return;
+                    }
+                    if (target.isInterface()) {
+                        return;
+                    }
+                    boolean isSpringManaged = target.isAnnotatedWith(
+                            org.springframework.stereotype.Component.class)
+                            || target.isAnnotatedWith(
+                                    org.springframework.stereotype.Service.class);
+                    if (isSpringManaged) {
+                        events.add(SimpleConditionEvent.violated(
+                                clazz,
+                                clazz.getName() + " depends on concrete infrastructure adapter "
+                                        + target.getName()
+                                        + "; depend on an interface instead"));
+                    }
+                });
+            }
+        };
+    }
+
+    private static ArchCondition<JavaMethod> notConstructDtosOutsideMapperOrDtoPackages() {
+        return new ArchCondition<>("not construct DTO objects outside of mapper or dto packages") {
+            @Override
+            public void check(JavaMethod method, ConditionEvents events) {
+                String ownerPackage = method.getOwner().getPackageName();
+                if (ownerPackage.startsWith("com.musicshop.mapper")
+                        || ownerPackage.startsWith("com.musicshop.dto")) {
+                    return;
+                }
+
+                for (JavaConstructorCall call : method.getConstructorCallsFromSelf()) {
+                    String targetName = call.getTargetOwner().getSimpleName();
+                    if (targetName.endsWith("DTO")) {
+                        events.add(SimpleConditionEvent.violated(
+                                method,
+                                method.getFullName()
+                                        + " constructs " + targetName
+                                        + " directly; create DTOs only in mapper or dto packages"));
+                    }
+                }
             }
         };
     }

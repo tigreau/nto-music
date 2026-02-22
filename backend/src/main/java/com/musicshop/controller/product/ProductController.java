@@ -40,11 +40,12 @@ public class ProductController {
      * List products with filtering, sorting, and pagination.
      *
      * GET
-     * /api/products?category=guitars&brand=fender,gibson&minPrice=100&maxPrice=1000
+     * /api/products?q=strat&category=guitars&brand=fender,gibson&minPrice=100&maxPrice=1000
      * &condition=EXCELLENT,GOOD&sort=recommended&page=0&size=20
      */
     @GetMapping
     public ResponseEntity<Page<SimpleProductDTO>> listProducts(
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) BigDecimal minPrice,
@@ -59,7 +60,7 @@ public class ProductController {
                 : Collections.emptyList();
 
         Page<SimpleProductDTO> products = productUseCase.listProducts(
-                category, brandSlugs, minPrice, maxPrice, condition, sort, page, size);
+                q, category, brandSlugs, minPrice, maxPrice, condition, sort, page, size);
 
         return ResponseEntity.ok(products);
     }
@@ -101,9 +102,6 @@ public class ProductController {
     @Operation(summary = "Delete product")
     @ApiResponse(responseCode = "204", description = "No Content")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        if (!productUseCase.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found");
-        }
         productUseCase.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }

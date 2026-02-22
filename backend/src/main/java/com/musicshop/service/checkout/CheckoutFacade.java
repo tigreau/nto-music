@@ -3,78 +3,71 @@ package com.musicshop.service.checkout;
 import com.musicshop.dto.checkout.CheckoutRequest;
 import com.musicshop.dto.checkout.CheckoutResponse;
 import com.musicshop.exception.CartEmptyException;
-import com.musicshop.exception.PaymentFailedException;
 import com.musicshop.exception.ResourceNotFoundException;
+import com.musicshop.mapper.CheckoutMapper;
 import com.musicshop.model.address.Address;
 import com.musicshop.model.cart.Cart;
 import com.musicshop.model.cart.CartDetail;
 import com.musicshop.model.order.UserOrder;
-import com.musicshop.model.order.UserOrderBuilder;
-import com.musicshop.model.payment.Payment;
-import com.musicshop.model.user.Notification;
-import com.musicshop.model.user.NotificationType;
 import com.musicshop.model.user.User;
-import com.musicshop.payment.PaymentGateway;
-import com.musicshop.payment.PaymentGatewayFactory;
-import com.musicshop.payment.PaymentRequest;
-import com.musicshop.payment.PaymentResult;
-import com.musicshop.pricing.BasePriceCalculator;
-import com.musicshop.pricing.PriceCalculator;
-import com.musicshop.pricing.ShippingFeeDecorator;
-import com.musicshop.pricing.TaxDecorator;
-import com.musicshop.repository.address.AddressRepository;
+import com.musicshop.service.payment.PaymentResult;
 import com.musicshop.repository.cart.CartRepository;
-import com.musicshop.repository.order.OrderRepository;
-import com.musicshop.repository.payment.PaymentRepository;
-import com.musicshop.repository.user.NotificationRepository;
+import com.musicshop.repository.user.UserRepository;
 import com.musicshop.service.cart.CartService;
-import com.musicshop.service.notification.NotificationSseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class CheckoutFacade {
 
-    private static final BigDecimal TAX_RATE = new BigDecimal("0.21");
-    private static final BigDecimal SHIPPING_FEE = new BigDecimal("5.99");
+    private static final BigDecimal DEFAULT_COUPON_AMOUNT = new BigDecimal("10.00");
 
     private final CartService cartService;
     private final CartRepository cartRepository;
-    private final AddressRepository addressRepository;
-    private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
-    private final PaymentGatewayFactory paymentGatewayFactory;
-    private final NotificationRepository notificationRepository;
-    private final NotificationSseService sseService;
+    private final UserRepository userRepository;
+    private final CheckoutAddressService checkoutAddressService;
+    private final CheckoutPricingService checkoutPricingService;
+    private final CheckoutPaymentService checkoutPaymentService;
+    private final CheckoutOrderService checkoutOrderService;
+    private final CheckoutNotificationService checkoutNotificationService;
+    private final CheckoutMapper checkoutMapper;
+    private final BigDecimal couponAmount;
 
     @Autowired
     public CheckoutFacade(CartService cartService,
-                          CartRepository cartRepository,
-                          AddressRepository addressRepository,
-                          OrderRepository orderRepository,
-                          PaymentRepository paymentRepository,
-                          PaymentGatewayFactory paymentGatewayFactory,
-                          NotificationRepository notificationRepository,
-                          NotificationSseService sseService) {
+            CartRepository cartRepository,
+            UserRepository userRepository,
+            CheckoutAddressService checkoutAddressService,
+            CheckoutPricingService checkoutPricingService,
+            CheckoutPaymentService checkoutPaymentService,
+            CheckoutOrderService checkoutOrderService,
+            CheckoutNotificationService checkoutNotificationService,
+            CheckoutMapper checkoutMapper,
+            @Value("${checkout.coupon.fixed-amount:10.00}") BigDecimal couponAmount) {
         this.cartService = cartService;
         this.cartRepository = cartRepository;
-        this.addressRepository = addressRepository;
-        this.orderRepository = orderRepository;
-        this.paymentRepository = paymentRepository;
-        this.paymentGatewayFactory = paymentGatewayFactory;
-        this.notificationRepository = notificationRepository;
-        this.sseService = sseService;
+        this.userRepository = userRepository;
+        this.checkoutAddressService = checkoutAddressService;
+        this.checkoutPricingService = checkoutPricingService;
+        this.checkoutPaymentService = checkoutPaymentService;
+        this.checkoutOrderService = checkoutOrderService;
+        this.checkoutNotificationService = checkoutNotificationService;
+        this.checkoutMapper = checkoutMapper;
+        this.couponAmount = couponAmount != null ? couponAmount : DEFAULT_COUPON_AMOUNT;
     }
 
     @Transactional
-    public CheckoutResponse checkout(User user, CheckoutRequest request) {
+    public CheckoutResponse checkout(Long userId, CheckoutRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         // 1. Load cart
-        Cart cart = cartRepository.findByUser(user)
+        Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
         List<CartDetail> cartDetails = cartService.listCartDetails(cart.getId());
@@ -83,84 +76,34 @@ public class CheckoutFacade {
         }
 
         // 2. Create shipping address
-        Address address = new Address();
-        address.setStreet(request.getStreet());
-        address.setNumber(request.getNumber());
-        address.setPostalCode(request.getPostalCode());
-        address.setCity(request.getCity());
-        address.setCountry(request.getCountry());
-        address = addressRepository.save(address);
+        Address address = checkoutAddressService.createShippingAddress(request);
 
-        // 3. Calculate subtotal from cart items
-        BigDecimal subtotal = cartDetails.stream()
-                .map(cd -> cd.getProduct().getPrice().multiply(BigDecimal.valueOf(cd.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 3. Calculate total using pricing pipeline
+        BigDecimal totalAmount = checkoutPricingService.calculateTotal(cartDetails, request.getCouponCode(),
+                couponAmount);
 
-        // 4. Apply Decorator pricing pipeline
-        PriceCalculator calculator = new BasePriceCalculator(subtotal);
-        calculator = new TaxDecorator(calculator, TAX_RATE);
-        calculator = new ShippingFeeDecorator(calculator, SHIPPING_FEE);
-        BigDecimal totalAmount = calculator.calculate();
+        // 4. Build order
+        UserOrder order = checkoutOrderService.buildOrder(user, address, cartDetails, totalAmount);
 
-        // 5. Build order using Builder pattern
-        UserOrderBuilder builder = UserOrder.builder()
-                .user(user)
-                .orderDate(LocalDateTime.now())
-                .shippingAddress(address)
-                .totalAmount(totalAmount);
+        // 5. Process payment
+        PaymentResult paymentResult = checkoutPaymentService.processPayment(request.getPaymentMethod(), totalAmount);
 
-        for (CartDetail cd : cartDetails) {
-            builder.addOrderDetail(cd.getProduct(), cd.getQuantity(), cd.getProduct().getPrice());
-        }
+        // 6. Persist order and payment
+        UserOrder savedOrder = checkoutOrderService.saveConfirmedOrder(order);
+        checkoutOrderService.recordPayment(savedOrder, request.getPaymentMethod(), totalAmount);
 
-        UserOrder order = builder.build();
-
-        // 6. Process payment using Adapter pattern
-        PaymentGateway gateway = paymentGatewayFactory.getGateway(request.getPaymentMethod());
-        PaymentRequest paymentRequest = new PaymentRequest(totalAmount, "EUR", request.getPaymentMethod());
-        PaymentResult paymentResult = gateway.processPayment(paymentRequest);
-
-        if (!paymentResult.isSuccess()) {
-            throw new PaymentFailedException("Payment failed: " + paymentResult.getMessage());
-        }
-
-        // 7. Save order
-        order.setStatus("CONFIRMED");
-        UserOrder savedOrder = orderRepository.save(order);
-
-        // 8. Save payment record
-        Payment payment = new Payment();
-        payment.setOrder(savedOrder);
-        payment.setPaymentMethod(request.getPaymentMethod());
-        payment.setPaymentDate(LocalDateTime.now());
-        payment.setAmount(totalAmount);
-        paymentRepository.save(payment);
-
-        // 9. Clear the cart
+        // 7. Clear the cart
         cartService.clearCart(cart.getId());
 
-        // 10. Send notification
-        sendOrderConfirmation(user, savedOrder);
+        // 8. Send notification
+        checkoutNotificationService.sendOrderConfirmation(user, savedOrder);
 
-        // 11. Return response
-        return new CheckoutResponse(
+        // 9. Return response
+        return checkoutMapper.toCheckoutResponse(
                 savedOrder.getId(),
                 totalAmount,
                 "CONFIRMED",
-                paymentResult.getTransactionId()
-        );
+                paymentResult.getTransactionId());
     }
 
-    private void sendOrderConfirmation(User user, UserOrder order) {
-        Notification notification = new Notification();
-        notification.setTimestamp(LocalDateTime.now());
-        notification.setMessage(String.format("Order #%d confirmed! Total: EUR %.2f", order.getId(), order.getTotalAmount()));
-        notification.setType(NotificationType.ORDER_CONFIRMED);
-        notification.setUser(user);
-        notification.setRelatedEntityId(order.getId());
-        notification.setRead(false);
-
-        Notification saved = notificationRepository.save(notification);
-        sseService.sendToUser(user.getId(), saved);
-    }
 }

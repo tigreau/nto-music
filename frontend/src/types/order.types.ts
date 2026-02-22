@@ -1,5 +1,6 @@
 export interface CheckoutRequestPayload {
   paymentMethod: string;
+  couponCode?: string;
   street: string;
   number: string;
   postalCode: string;

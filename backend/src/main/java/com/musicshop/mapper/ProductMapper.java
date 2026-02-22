@@ -7,16 +7,19 @@ import com.musicshop.model.product.ProductImage;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = { BrandMapper.class, CategoryMapper.class })
+@Mapper(config = CentralMapperConfig.class, uses = { BrandMapper.class, CategoryMapper.class })
 public interface ProductMapper {
 
     @Mapping(target = "brandName", source = "brand.name")
     @Mapping(target = "categoryName", source = "category.categoryName")
+    @Mapping(target = "isPromoted", ignore = true)
     SimpleProductDTO toSimpleProductDTO(Product product);
 
     @Mapping(target = "brandName", source = "brand.name")
     @Mapping(target = "categoryName", source = "category.categoryName")
+    @Mapping(target = "isPromoted", ignore = true)
     DetailedProductDTO toDetailedProductDTO(Product product);
 
+    @Mapping(target = "isPrimary", ignore = true)
     com.musicshop.dto.product.ProductImageDTO toProductImageDTO(ProductImage productImage);
 }

@@ -166,7 +166,7 @@ class ValidationContractIntegrationTest {
                                   "price": "not-a-number",
                                   "quantityAvailable": 2,
                                   "categoryId": 1,
-                                  "condition": "NEW"
+                                  "condition": "EXCELLENT"
                                 }
                                 """))
                 .andExpect(status().isBadRequest())

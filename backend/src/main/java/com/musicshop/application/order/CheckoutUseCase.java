@@ -2,7 +2,6 @@ package com.musicshop.application.order;
 
 import com.musicshop.dto.checkout.CheckoutRequest;
 import com.musicshop.dto.checkout.CheckoutResponse;
-import com.musicshop.model.user.User;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.musicshop.service.checkout.CheckoutFacade;
 import com.musicshop.service.user.UserService;
@@ -21,7 +20,7 @@ public class CheckoutUseCase {
 
     @PreAuthorize("isAuthenticated()")
     public CheckoutResponse checkout(String email, CheckoutRequest request) {
-        User user = userService.findByEmail(email);
-        return checkoutFacade.checkout(user, request);
+        Long userId = userService.findUserIdByEmail(email);
+        return checkoutFacade.checkout(userId, request);
     }
 }

@@ -3,7 +3,6 @@ package com.musicshop.data.seeder;
 import com.musicshop.model.brand.Brand;
 import com.musicshop.repository.brand.BrandRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class BrandSeeder implements DataSeeder {
@@ -15,7 +14,6 @@ public class BrandSeeder implements DataSeeder {
     }
 
     @Override
-    @Transactional
     public void seed() {
         String[][] brands = {
                 // Guitars & Plucked

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { Truck, ShieldCheck, RotateCcw, CreditCard, ArrowRight, Zap, DollarSign, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useMemo } from "react"
@@ -18,6 +18,11 @@ export function Hero() {
   const categories = useMemo(
     () => mapCategoryCounts(CATEGORIES, categoriesData),
     [categoriesData],
+  );
+  const location = useLocation();
+  const selectedCategory = useMemo(
+    () => new URLSearchParams(location.search).get('category'),
+    [location.search],
   );
 
   return (
@@ -47,14 +52,14 @@ export function Hero() {
                 <div className="flex items-start gap-3 bg-[#002b36] rounded-lg px-4 py-3 border border-[#073642]">
                   <ShieldCheck className="w-5 h-5 text-[#cb4b16] flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[#fdf6e3] text-sm font-semibold">2-Year Warranty</p>
+                    <p className="text-[#fdf6e3] text-sm font-semibold">1-Year Warranty</p>
                     <p className="text-[#839496] text-xs">Full coverage</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-[#002b36] rounded-lg px-4 py-3 border border-[#073642]">
                   <RotateCcw className="w-5 h-5 text-[#cb4b16] flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[#fdf6e3] text-sm font-semibold">30-Day Returns</p>
+                    <p className="text-[#fdf6e3] text-sm font-semibold">14-Day Returns</p>
                     <p className="text-[#839496] text-xs">Risk-free buying</p>
                   </div>
                 </div>
@@ -75,7 +80,7 @@ export function Hero() {
                   GOT GEAR TO SELL?
                 </h2>
                 <p className="text-[#93a1a1] text-base leading-relaxed mb-6 font-medium">
-                  We handle everything. You list, we verify, they buy. Help someone else get into music while earning fair cash. Keep 95% of your sale price, that's 5x better than what pawn shops offer.
+                  We handle everything. You list, we verify, they buy. Help someone else get into music while earning fair cash.
                 </p>
 
                 {/* Why sell here */}
@@ -85,8 +90,8 @@ export function Hero() {
                       <Zap className="w-5 h-5 text-[#b58900]" />
                     </div>
                     <div>
-                      <p className="text-[#fdf6e3] font-semibold text-sm">List in 2 minutes</p>
-                      <p className="text-[#839496] text-xs">No complicated forms or auction setup</p>
+                      <p className="text-[#fdf6e3] font-semibold text-sm">Easy listing</p>
+                      <p className="text-[#839496] text-xs">Tell us the brand, condition, extras and we handle the rest.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -94,8 +99,8 @@ export function Hero() {
                       <DollarSign className="w-5 h-5 text-[#b58900]" />
                     </div>
                     <div>
-                      <p className="text-[#fdf6e3] font-semibold text-sm">Only 5% fee</p>
-                      <p className="text-[#839496] text-xs">Keep more of what you earn (eBay takes 13%+)</p>
+                      <p className="text-[#fdf6e3] font-semibold text-sm">Not sure about the offer?</p>
+                      <p className="text-[#839496] text-xs">We keep your instrument safe and can return it at no extra cost if you pass.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -111,11 +116,14 @@ export function Hero() {
               </div>
 
               <Button
+                asChild
                 size="lg"
                 className="w-full bg-[#b58900] text-[#fdf6e3] hover:bg-[#cb4b16] font-bold shadow-lg text-base h-12"
               >
-                Sell Your Gear
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <Link to="/sell">
+                  Sell Your Gear
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Link>
               </Button>
             </div>
           </div>
@@ -126,18 +134,21 @@ export function Hero() {
       <div className="bg-[#eee8d5] border-b border-[#93a1a1]">
         <div className="container mx-auto px-4">
           <nav className="flex items-center justify-start lg:justify-center gap-2 py-3 overflow-x-auto">
-            {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                to={cat.href}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#073642] hover:text-[#268bd2] hover:bg-[#fdf6e3] rounded-md transition-colors whitespace-nowrap border border-transparent hover:border-[#93a1a1]"
-              >
-                {cat.name}
-                <span className="text-xs text-[#586e75] bg-[#fdf6e3] px-2 py-0.5 rounded-full font-bold border border-[#93a1a1]">
-                  {cat.count}
-                </span>
-              </Link>
-            ))}
+            {categories.map((cat) => {
+                const isActive = selectedCategory === cat.slug;
+                return (
+                  <Link
+                    key={cat.slug}
+                    to={cat.href}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors whitespace-nowrap rounded-md border ${isActive ? 'text-[#268bd2] bg-[#fdf6e3] border-[#93a1a1]' : 'text-[#073642] border-transparent hover:text-[#268bd2] hover:bg-[#fdf6e3] hover:border-[#93a1a1]'}`}
+                  >
+                    {cat.name}
+                    <span className="text-xs text-[#586e75] bg-[#fdf6e3] px-2 py-0.5 rounded-full font-bold border border-[#93a1a1]">
+                      {cat.count}
+                    </span>
+                  </Link>
+                );
+              })}
           </nav>
         </div>
       </div>

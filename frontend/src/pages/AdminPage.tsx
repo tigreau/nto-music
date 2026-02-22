@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Shield, Plus, Save, Trash2, Tag, FolderPlus, Image as ImageIcon } from 'lucide-react';
@@ -25,12 +25,15 @@ interface ProductEditErrorState {
 
 type CreateProductErrorState = Partial<Record<keyof ProductUpsertPayload, string>>;
 type SelectedProductSummary = { id: number; name: string };
+type AdminConditionFilter = 'ALL' | ProductCondition;
 
 const AdminPage = () => {
     const [products, setProducts] = useState<AdminProduct[]>([]);
     const [persistedProductDrafts, setPersistedProductDrafts] = useState<Record<number, { name: string; price: number }>>({});
     const [editErrors, setEditErrors] = useState<Record<number, ProductEditErrorState>>({});
     const [createProductErrors, setCreateProductErrors] = useState<CreateProductErrorState>({});
+    const [adminSearch, setAdminSearch] = useState('');
+    const [adminCondition, setAdminCondition] = useState<AdminConditionFilter>('ALL');
 
     const [selectedParentId, setSelectedParentId] = useState<number>(0);
     const [newSubcategoryName, setNewSubcategoryName] = useState('');
@@ -40,7 +43,7 @@ const AdminPage = () => {
         price: 0,
         description: '',
         quantityAvailable: 0,
-        condition: 'NEW' as ProductCondition,
+        condition: 'GOOD' as ProductCondition,
         categoryId: 0,
         conditionNotes: '',
     });
@@ -164,7 +167,7 @@ const AdminPage = () => {
                         price: 0,
                         description: '',
                         quantityAvailable: 0,
-                        condition: 'NEW',
+                        condition: 'GOOD',
                         categoryId: 0,
                         conditionNotes: '',
                     });
@@ -312,6 +315,17 @@ const AdminPage = () => {
             setProducts(updatedProducts);
         }
     };
+
+    const filteredProducts = useMemo(() => {
+        const search = adminSearch.trim().toLowerCase();
+        return products.filter((product) => {
+            const matchesSearch = !search
+                || product.name.toLowerCase().includes(search)
+                || product.slug.toLowerCase().includes(search);
+            const matchesCondition = adminCondition === 'ALL' || product.condition === adminCondition;
+            return matchesSearch && matchesCondition;
+        });
+    }, [products, adminSearch, adminCondition]);
 
     return (
         <div className="min-h-screen bg-background">
@@ -475,9 +489,7 @@ const AdminPage = () => {
                                                 clearCreateFieldError('condition');
                                             }}
                                         >
-                                            <option value="NEW">New</option>
                                             <option value="EXCELLENT">Excellent</option>
-                                            <option value="VERY_GOOD">Very Good</option>
                                             <option value="GOOD">Good</option>
                                             <option value="FAIR">Fair</option>
                                         </select>
@@ -564,11 +576,43 @@ const AdminPage = () => {
                     <div className="bg-[#eee8d5] rounded-lg border border-[#93a1a1] shadow-md overflow-hidden">
                         <div className="bg-[#073642] px-6 py-4 border-b-2 border-[#002b36]">
                             <h2 className="font-bold text-xl text-[#fdf6e3]">
-                                Product List ({products.length} products)
+                                Product List ({filteredProducts.length} of {products.length} products)
                             </h2>
                         </div>
+                        <div className="p-5 bg-[#fdf6e3] border-b border-[#93a1a1]">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <Input
+                                    type="search"
+                                    value={adminSearch}
+                                    onChange={(e) => setAdminSearch(e.target.value)}
+                                    placeholder="Filter by product name or slug..."
+                                    className="bg-[#fdf6e3] border border-[#93a1a1] h-11 text-base font-medium"
+                                />
+                                <select
+                                    value={adminCondition}
+                                    onChange={(e) => setAdminCondition(e.target.value as AdminConditionFilter)}
+                                    className="flex h-11 w-full rounded-md border border-[#93a1a1] bg-[#fdf6e3] px-4 py-2 text-base font-medium text-[#073642]"
+                                >
+                                    <option value="ALL">All conditions</option>
+                                    <option value="EXCELLENT">Excellent</option>
+                                    <option value="GOOD">Good</option>
+                                    <option value="FAIR">Fair</option>
+                                </select>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setAdminSearch('');
+                                        setAdminCondition('ALL');
+                                    }}
+                                    className="h-11 border border-[#93a1a1] font-semibold"
+                                >
+                                    Clear filters
+                                </Button>
+                            </div>
+                        </div>
                         <div className="divide-y-2 divide-[#93a1a1]">
-                            {products.map(product => (
+                            {filteredProducts.map(product => (
                                 <div key={product.id} className="p-5 bg-[#fdf6e3] hover:bg-[#eee8d5] transition-colors">
                                     <div className="flex flex-wrap items-center gap-3">
                                         <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -648,6 +692,11 @@ const AdminPage = () => {
                                     </div>
                                 </div>
                             ))}
+                            {filteredProducts.length === 0 && (
+                                <div className="p-8 text-center text-[#586e75] font-medium">
+                                    No products match the current admin filters.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

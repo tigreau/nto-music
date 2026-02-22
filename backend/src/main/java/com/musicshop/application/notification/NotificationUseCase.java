@@ -1,46 +1,45 @@
 package com.musicshop.application.notification;
 
 import com.musicshop.dto.user.NotificationDTO;
-import com.musicshop.model.user.Notification;
-import com.musicshop.model.user.User;
+import com.musicshop.service.notification.NotificationBroker;
 import org.springframework.security.access.prepost.PreAuthorize;
-import com.musicshop.service.notification.NotificationSseService;
 import com.musicshop.service.user.NotificationService;
 import com.musicshop.service.user.UserService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class NotificationUseCase {
 
-    private final NotificationSseService sseService;
     private final NotificationService notificationService;
     private final UserService userService;
+    private final NotificationBroker notificationBroker;
 
     public NotificationUseCase(
-            NotificationSseService sseService,
             NotificationService notificationService,
-            UserService userService) {
-        this.sseService = sseService;
+            UserService userService,
+            NotificationBroker notificationBroker) {
         this.notificationService = notificationService;
         this.userService = userService;
+        this.notificationBroker = notificationBroker;
     }
 
     @PreAuthorize("isAuthenticated()")
-    public SseEmitter stream(String email) {
-        User user = userService.findByEmail(email);
-        return sseService.createEmitter(user.getId());
+    public Long resolveUserId(String email) {
+        return userService.findUserIdByEmail(email);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public Object openStream(String email) {
+        Long userId = userService.findUserIdByEmail(email);
+        return notificationBroker.open(userId);
     }
 
     @PreAuthorize("isAuthenticated()")
     public List<NotificationDTO> getNotifications(String email) {
-        User user = userService.findByEmail(email);
-        return notificationService.getNotificationsForUser(user).stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        Long userId = userService.findUserIdByEmail(email);
+        return notificationService.getNotificationDTOsForUserId(userId);
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -50,23 +49,12 @@ public class NotificationUseCase {
 
     @PreAuthorize("isAuthenticated()")
     public void markAllAsRead(String email) {
-        User user = userService.findByEmail(email);
-        notificationService.markAllAsRead(user);
+        Long userId = userService.findUserIdByEmail(email);
+        notificationService.markAllAsReadByUserId(userId);
     }
 
     @PreAuthorize("isAuthenticated()")
     public void deleteNotification(Long notificationId) {
         notificationService.deleteNotification(notificationId);
-    }
-
-    private NotificationDTO toDto(Notification notification) {
-        NotificationDTO dto = new NotificationDTO();
-        dto.setId(notification.getId());
-        dto.setMessage(notification.getMessage());
-        dto.setType(notification.getType().name());
-        dto.setTimestamp(notification.getTimestamp().toString());
-        dto.setRead(notification.isRead());
-        dto.setRelatedEntityId(notification.getRelatedEntityId());
-        return dto;
     }
 }

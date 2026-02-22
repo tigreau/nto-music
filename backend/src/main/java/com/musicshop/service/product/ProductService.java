@@ -1,8 +1,8 @@
 package com.musicshop.service.product;
 
-import com.musicshop.discount.DiscountStrategy;
-import com.musicshop.discount.DiscountStrategyFactory;
-import com.musicshop.discount.DiscountType;
+import com.musicshop.domain.discount.DiscountStrategy;
+import com.musicshop.domain.discount.DiscountStrategyFactory;
+import com.musicshop.domain.discount.DiscountType;
 import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.exception.ResourceInUseException;
 import com.musicshop.mapper.ProductMapper;
@@ -22,7 +22,7 @@ import com.musicshop.repository.category.CategoryRepository;
 import com.musicshop.repository.order.OrderDetailRepository;
 import com.musicshop.repository.product.ProductRepository;
 import com.musicshop.repository.review.ReviewRepository;
-import com.musicshop.specification.ProductSpecification;
+import com.musicshop.repository.product.specification.ProductSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -77,7 +77,7 @@ public class ProductService {
 
     // ... existing imports
 
-    public Page<SimpleProductDTO> listProducts(String categorySlug, List<String> brandSlugs,
+    public Page<SimpleProductDTO> listProducts(String query, String categorySlug, List<String> brandSlugs,
             BigDecimal minPrice, BigDecimal maxPrice,
             String condition,
             String sort, int page, int size) {
@@ -87,7 +87,8 @@ public class ProductService {
                         .collect(Collectors.toList())
                 : Collections.emptyList();
 
-        Specification<Product> spec = Specification.where(ProductSpecification.hasCategory(categorySlug))
+        Specification<Product> spec = Specification.where(ProductSpecification.hasQuery(query))
+                .and(ProductSpecification.hasCategory(categorySlug))
                 .and(ProductSpecification.hasBrands(brandSlugs))
                 .and(ProductSpecification.hasMinPrice(minPrice))
                 .and(ProductSpecification.hasMaxPrice(maxPrice))

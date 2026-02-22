@@ -4,6 +4,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminPage from './pages/AdminPage';
 import UserProfilePage from './pages/UserProfilePage';
+import SellInstrumentPage from './pages/SellInstrumentPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Header } from "./components/Header";
@@ -49,6 +50,11 @@ function AppShell() {
                         <Route path="/user-profile" element={
                             <ProtectedRoute>
                                 <UserProfilePage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/sell" element={
+                            <ProtectedRoute>
+                                <SellInstrumentPage />
                             </ProtectedRoute>
                         } />
                         <Route path="/login" element={<LoginPage />} />

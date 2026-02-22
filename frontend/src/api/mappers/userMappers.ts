@@ -10,5 +10,10 @@ export function mapUserProfile(dto: Schemas['UserDTO']): UserProfile {
     lastName: requiredString(dto.lastName, 'user.lastName'),
     email: requiredString(dto.email, 'user.email'),
     phoneNumber: optionalString(dto.phoneNumber) ?? '',
+    street: optionalString(dto.street) ?? '',
+    number: optionalString(dto.number) ?? '',
+    postalCode: optionalString(dto.postalCode) ?? '',
+    city: optionalString(dto.city) ?? '',
+    country: optionalString(dto.country) ?? '',
   };
 }

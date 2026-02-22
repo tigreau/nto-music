@@ -3,7 +3,6 @@ package com.musicshop.data.seeder;
 import com.musicshop.model.category.Category;
 import com.musicshop.repository.category.CategoryRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class CategorySeeder implements DataSeeder {
@@ -15,7 +14,6 @@ public class CategorySeeder implements DataSeeder {
     }
 
     @Override
-    @Transactional
     public void seed() {
         // Parent categories: name, slug, description
         String[][] parents = {

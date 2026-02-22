@@ -51,11 +51,11 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
 
                 {/* Content - Scrollable */}
                 <div className="overflow-y-auto scrollbar-thin p-2 lg:p-8 h-full">
-                    <div className="flex flex-col lg:flex-row gap-8 items-start lg:h-full">
+                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8 items-start lg:h-full">
                         {/* Left Column: Image + Description */}
-                        <div className="w-full lg:w-2/3 flex flex-col gap-8 lg:h-full">
+                        <div className="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6 lg:gap-8 lg:h-full">
                             {/* Image Carousel */}
-                            <div className="relative w-full aspect-video lg:aspect-auto lg:h-full rounded-lg overflow-hidden flex items-center justify-center group shrink-0">
+                            <div className="relative w-full aspect-[4/3] min-h-[240px] sm:min-h-[320px] lg:aspect-auto lg:h-full rounded-lg overflow-hidden flex items-center justify-center group shrink-0">
                                 {sortedImages.length > 0 ? (
                                     <>
                                         <img
@@ -118,11 +118,11 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                         </div>
 
                         {/* Right Column: Product Details Card */}
-                        <div className="w-full lg:w-1/3 bg-card rounded-xl border border-border shadow-xl overflow-hidden flex flex-col sticky top-8 lg:h-full">
+                        <div className="w-full lg:w-1/3 bg-card rounded-xl border border-border shadow-xl overflow-hidden flex flex-col lg:sticky lg:top-8 lg:h-full">
                             <div className="p-6 space-y-6 flex-1 overflow-y-auto scrollbar-thin">
                                 {/* Product Name */}
                                 <div>
-                                    <h2 className="text-3xl font-bold text-foreground leading-tight">{product.name}</h2>
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">{product.name}</h2>
                                 </div>
 
                                 {/* Product Info */}
@@ -142,7 +142,7 @@ const ProductModal = ({ product, onClose, onAddToCart }: ProductModalProps) => {
                                         </div>
 
                                         <div className="pt-2">
-                                            <div className="text-4xl font-bold text-primary">
+                                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
                                                 {typeof product.price === 'number' ? product.price.toFixed(2) : product.price} EUR
                                             </div>
                                         </div>

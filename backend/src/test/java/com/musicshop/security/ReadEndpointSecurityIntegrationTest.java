@@ -8,6 +8,7 @@ import com.musicshop.controller.user.NotificationController;
 import com.musicshop.dto.auth.AuthResponse;
 import com.musicshop.dto.user.NotificationDTO;
 import com.musicshop.exception.GlobalExceptionHandler;
+import com.musicshop.infrastructure.notification.NotificationSseBroker;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -46,6 +47,8 @@ class ReadEndpointSecurityIntegrationTest {
 
     @MockBean
     private NotificationUseCase notificationUseCase;
+    @MockBean
+    private NotificationSseBroker notificationSseBroker;
 
     @MockBean
     private JwtService jwtService;
@@ -86,14 +89,11 @@ class ReadEndpointSecurityIntegrationTest {
     @Test
     @WithMockUser(username = "buyer@example.com", roles = "USER")
     void authenticatedNotificationsEndpoints_returnOk() throws Exception {
-        NotificationDTO dto = new NotificationDTO();
-        dto.setId(11L);
-        dto.setMessage("Order updated");
-        dto.setType("ORDER_STATUS");
-        dto.setTimestamp("2026-02-17T10:00:00Z");
-        dto.setRead(false);
+        NotificationDTO dto = new NotificationDTO(11L, "Order updated", "ORDER_STATUS", "2026-02-17T10:00:00Z", false,
+                null);
         when(notificationUseCase.getNotifications("buyer@example.com")).thenReturn(List.of(dto));
-        when(notificationUseCase.stream("buyer@example.com")).thenReturn(new SseEmitter());
+        when(notificationUseCase.resolveUserId("buyer@example.com")).thenReturn(1L);
+        when(notificationSseBroker.open(1L)).thenReturn(new SseEmitter());
 
         mockMvc.perform(get("/api/notifications"))
                 .andExpect(status().isOk())

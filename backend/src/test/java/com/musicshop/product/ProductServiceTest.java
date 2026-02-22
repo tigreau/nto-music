@@ -1,6 +1,6 @@
 //package com.musicshop.product;
 //
-//import com.musicshop.discount.DiscountStrategyFactory;
+//import com.musicshop.domain.discount.DiscountStrategyFactory;
 //import com.musicshop.event.product.ProductDeletionEvent;
 //import com.musicshop.event.product.ProductDiscountEvent;
 //import com.musicshop.event.product.ProductUpdateEvent;

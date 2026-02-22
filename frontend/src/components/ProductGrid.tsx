@@ -1,5 +1,6 @@
 import { Product, CONDITION_LABELS, CONDITION_COLORS } from '@/types';
 import { getCategoryImage } from '@/lib/categoryUtils';
+import { ShoppingCart } from 'lucide-react';
 import './ProductGrid.css';
 
 interface ProductGridProps {
@@ -69,12 +70,14 @@ export function ProductGrid({ products, onProductClick, onAddToCart, isLoading }
                             {onAddToCart && (
                                 <button
                                     className="add-to-cart-btn"
+                                    aria-label={`Add ${product.name} to cart`}
+                                    title="Add to cart"
                                     onClick={e => {
                                         e.stopPropagation();
                                         onAddToCart(product.id);
                                     }}
                                 >
-                                    + Cart
+                                    <ShoppingCart className="add-to-cart-icon" />
                                 </button>
                             )}
                         </div>

@@ -89,6 +89,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", ex.getMessage());
     }
 
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidation(ValidationException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", ex.getMessage());
+    }
+
+    @ExceptionHandler(ImageStorageException.class)
+    public ResponseEntity<ApiErrorResponse> handleImageStorage(ImageStorageException ex) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "IMAGE_STORAGE_ERROR", ex.getMessage());
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiErrorResponse> handleBadCredentials(BadCredentialsException ex) {
         return buildResponse(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", ex.getMessage());

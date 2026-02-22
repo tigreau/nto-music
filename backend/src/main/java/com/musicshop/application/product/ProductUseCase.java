@@ -22,6 +22,7 @@ public class ProductUseCase {
     }
 
     public Page<SimpleProductDTO> listProducts(
+            String query,
             String category,
             List<String> brandSlugs,
             BigDecimal minPrice,
@@ -30,7 +31,8 @@ public class ProductUseCase {
             String sort,
             int page,
             int size) {
-        return productService.listProducts(category, brandSlugs, minPrice, maxPrice, condition, sort, page, size);
+        return productService.listProducts(query, category, brandSlugs, minPrice, maxPrice, condition, sort, page,
+                size);
     }
 
     public Optional<DetailedProductDTO> getDetailedProductById(Long id) {

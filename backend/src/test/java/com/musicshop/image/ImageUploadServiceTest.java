@@ -4,7 +4,7 @@ import com.musicshop.model.product.Product;
 import com.musicshop.model.product.ProductImage;
 import com.musicshop.repository.product.ProductImageRepository;
 import com.musicshop.repository.product.ProductRepository;
-import com.musicshop.service.image.ImageUploadService;
+import com.musicshop.infrastructure.image.ImageUploadService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

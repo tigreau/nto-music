@@ -3,6 +3,8 @@ package com.musicshop.repository.user;
 import com.musicshop.model.user.UserAddress;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 public interface UserAddressRepository extends JpaRepository<UserAddress, Long> {
-    // Implement specific methods for UserAddress
+    Optional<UserAddress> findFirstByUserId(Long userId);
 }

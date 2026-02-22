@@ -4,6 +4,7 @@
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
+    align-items: flex-start;
 }
 
 .shop-main {
@@ -57,8 +58,55 @@
     font-size: 0.9rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1100px) {
     .shop-layout {
         flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .shop-results-info {
+        margin-bottom: 0.875rem;
+        font-size: 0.8125rem;
+    }
+
+    .pagination {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+        padding: 0.5rem;
+        align-items: center;
+    }
+
+    .pagination button {
+        padding: 7px 12px;
+        font-size: 0.8125rem;
+        width: fit-content;
+    }
+
+    .pagination span {
+        width: auto;
+        text-align: center;
+        font-size: 0.8125rem;
+        grid-column: 2;
+        white-space: nowrap;
+    }
+
+    .pagination button:first-of-type {
+        justify-self: start;
+    }
+
+    .pagination button:last-of-type {
+        justify-self: end;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+    .shop-layout {
+        gap: 1rem;
+        padding: 1rem;
     }
 }

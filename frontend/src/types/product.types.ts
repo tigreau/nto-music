@@ -1,17 +1,13 @@
-export type ProductCondition = 'NEW' | 'EXCELLENT' | 'VERY_GOOD' | 'GOOD' | 'FAIR';
+export type ProductCondition = 'EXCELLENT' | 'GOOD' | 'FAIR';
 
 export const CONDITION_LABELS: Record<ProductCondition, string> = {
-  NEW: 'New',
   EXCELLENT: 'Excellent',
-  VERY_GOOD: 'Very Good',
   GOOD: 'Good',
   FAIR: 'Fair',
 };
 
 export const CONDITION_COLORS: Record<ProductCondition, string> = {
-  NEW: '#859900',
   EXCELLENT: '#2aa198',
-  VERY_GOOD: '#268bd2',
   GOOD: '#b58900',
   FAIR: '#cb4b16',
 };
@@ -67,6 +63,7 @@ export interface ProductUpsertPayload {
 }
 
 export interface ProductFilters {
+  q?: string;
   category?: string;
   brand?: string;
   minPrice?: number;

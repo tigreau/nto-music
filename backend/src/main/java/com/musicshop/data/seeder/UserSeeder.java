@@ -1,13 +1,17 @@
 package com.musicshop.data.seeder;
 
 import com.musicshop.model.cart.Cart;
+import com.musicshop.model.address.Address;
 import com.musicshop.model.user.User;
+import com.musicshop.model.user.UserAddress;
 import com.musicshop.model.user.UserRole;
+import com.musicshop.repository.address.AddressRepository;
+import com.musicshop.repository.cart.CartDetailRepository;
 import com.musicshop.repository.cart.CartRepository;
+import com.musicshop.repository.user.UserAddressRepository;
 import com.musicshop.repository.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -16,70 +20,118 @@ public class UserSeeder implements DataSeeder {
 
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
+    private final CartDetailRepository cartDetailRepository;
+    private final AddressRepository addressRepository;
+    private final UserAddressRepository userAddressRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserSeeder(UserRepository userRepository,
             CartRepository cartRepository,
+            CartDetailRepository cartDetailRepository,
+            AddressRepository addressRepository,
+            UserAddressRepository userAddressRepository,
             PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
+        this.cartDetailRepository = cartDetailRepository;
+        this.addressRepository = addressRepository;
+        this.userAddressRepository = userAddressRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
-    @Transactional
     public void seed() {
-        if (userRepository.count() > 0) {
-            return;
-        }
+        upsertSeedUser(
+                "John",
+                "Doe",
+                "john.doe@example.com",
+                "1234567890",
+                "password123",
+                UserRole.CUSTOMER,
+                "Main Street",
+                "42A",
+                "10001",
+                "Amsterdam",
+                "Netherlands");
 
-        // Customer user
-        User customer = new User();
-        customer.setFirstName("John");
-        customer.setLastName("Doe");
-        customer.setEmail("john.doe@example.com");
-        customer.setPhoneNumber("1234567890");
-        customer.setPassword(passwordEncoder.encode("password123"));
-        customer.setRole(UserRole.CUSTOMER);
-        userRepository.save(customer);
+        upsertSeedUser(
+                "Admin",
+                "User",
+                "admin@musicshop.com",
+                "0987654321",
+                "admin123",
+                UserRole.ADMIN,
+                "Admin Avenue",
+                "1",
+                "10100",
+                "Rotterdam",
+                "Netherlands");
 
-        Cart customerCart = new Cart();
-        customerCart.setUser(customer);
-        customerCart.setDateCreated(LocalDateTime.now());
-        cartRepository.save(customerCart);
-
-        // Admin user
-        User admin = new User();
-        admin.setFirstName("Admin");
-        admin.setLastName("User");
-        admin.setEmail("admin@musicshop.com");
-        admin.setPhoneNumber("0987654321");
-        admin.setPassword(passwordEncoder.encode("admin123"));
-        admin.setRole(UserRole.ADMIN);
-        userRepository.save(admin);
-
-        Cart adminCart = new Cart();
-        adminCart.setUser(admin);
-        adminCart.setDateCreated(LocalDateTime.now());
-        cartRepository.save(adminCart);
-
-        // Second customer user (for testing cart isolation)
-        User customer2 = new User();
-        customer2.setFirstName("Jane");
-        customer2.setLastName("Smith");
-        customer2.setEmail("jane.smith@example.com");
-        customer2.setPhoneNumber("5551234567");
-        customer2.setPassword(passwordEncoder.encode("password123"));
-        customer2.setRole(UserRole.CUSTOMER);
-        userRepository.save(customer2);
-
-        Cart customer2Cart = new Cart();
-        customer2Cart.setUser(customer2);
-        customer2Cart.setDateCreated(LocalDateTime.now());
-        cartRepository.save(customer2Cart);
+        upsertSeedUser(
+                "Jane",
+                "Smith",
+                "jane.smith@example.com",
+                "5551234567",
+                "password123",
+                UserRole.CUSTOMER,
+                "River Road",
+                "15B",
+                "20002",
+                "Utrecht",
+                "Netherlands");
     }
 
     public User getDefaultUser() {
         return userRepository.findAll().stream().findFirst().orElse(null);
+    }
+
+    private void upsertSeedUser(
+            String firstName,
+            String lastName,
+            String email,
+            String phoneNumber,
+            String rawPassword,
+            UserRole role,
+            String street,
+            String number,
+            String postalCode,
+            String city,
+            String country) {
+        User user = userRepository.findByEmail(email).orElseGet(User::new);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(email);
+        user.setPhoneNumber(phoneNumber);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        User savedUser = userRepository.save(user);
+
+        Cart cart = cartRepository.findByUser(savedUser).orElseGet(() -> {
+            Cart newCart = new Cart();
+            newCart.setUser(savedUser);
+            newCart.setDateCreated(LocalDateTime.now());
+            return cartRepository.save(newCart);
+        });
+        cartDetailRepository.deleteAll(cartDetailRepository.findByCart(cart));
+
+        upsertAddress(savedUser, street, number, postalCode, city, country);
+    }
+
+    private void upsertAddress(User user, String street, String number, String postalCode, String city, String country) {
+        UserAddress relation = userAddressRepository.findFirstByUserId(user.getId()).orElse(null);
+        Address address = relation != null ? relation.getAddress() : new Address();
+        address.setStreet(street);
+        address.setNumber(number);
+        address.setPostalCode(postalCode);
+        address.setCity(city);
+        address.setCountry(country);
+        Address savedAddress = addressRepository.save(address);
+
+        if (relation == null) {
+            UserAddress newRelation = new UserAddress();
+            newRelation.setUser(user);
+            newRelation.setAddress(savedAddress);
+            userAddressRepository.save(newRelation);
+        }
     }
 }

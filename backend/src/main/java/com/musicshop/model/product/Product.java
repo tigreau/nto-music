@@ -44,7 +44,7 @@ public class Product extends BaseModel<Long> {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProductCondition condition = ProductCondition.NEW;
+    private ProductCondition condition = ProductCondition.GOOD;
 
     private String conditionNotes;
 

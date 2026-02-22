@@ -109,7 +109,7 @@ class OwnershipLookupRepositoryIntegrationTest {
         product.setPrice(BigDecimal.valueOf(1000));
         product.setQuantityAvailable(5);
         product.setCategory(category);
-        product.setCondition(ProductCondition.NEW);
+        product.setCondition(ProductCondition.EXCELLENT);
         product.setSlug(slug);
         entityManager.persist(product);
         return product;

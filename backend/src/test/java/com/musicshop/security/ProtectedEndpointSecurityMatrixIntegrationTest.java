@@ -16,6 +16,8 @@ import com.musicshop.controller.product.ProductImageController;
 import com.musicshop.controller.user.NotificationController;
 import com.musicshop.controller.user.UserController;
 import com.musicshop.dto.cart.CartItemDTO;
+import com.musicshop.infrastructure.notification.NotificationSseBroker;
+import com.musicshop.mapper.ProductImageUploadMapper;
 import com.musicshop.model.cart.Cart;
 import com.musicshop.model.cart.CartDetail;
 import com.musicshop.model.user.Notification;
@@ -73,6 +75,9 @@ class ProtectedEndpointSecurityMatrixIntegrationTest {
     private ProductImageUseCase productImageUseCase;
 
     @MockBean
+    private ProductImageUploadMapper productImageUploadMapper;
+
+    @MockBean
     private CategoryUseCase categoryUseCase;
 
     @MockBean
@@ -86,6 +91,9 @@ class ProtectedEndpointSecurityMatrixIntegrationTest {
 
     @MockBean
     private NotificationUseCase notificationUseCase;
+
+    @MockBean
+    private NotificationSseBroker notificationSseBroker;
 
     @MockBean
     private UserRepository userRepository;
@@ -163,8 +171,7 @@ class ProtectedEndpointSecurityMatrixIntegrationTest {
     @WithMockUser(username = "self@example.com", roles = "USER")
     void ownershipGuardEndpoints_owner_returnOk() throws Exception {
         when(cartDetailRepository.findById(10L)).thenReturn(Optional.of(cartDetailFor("self@example.com")));
-        CartItemDTO updated = new CartItemDTO();
-        updated.setId(10L);
+        CartItemDTO updated = new CartItemDTO(10L, null, 2, null);
         when(cartUseCase.updateCartDetail(10L, 2)).thenReturn(updated);
         mockMvc.perform(put("/api/carts/details/10").param("newQuantity", "2"))
                 .andExpect(status().isOk());
@@ -180,8 +187,7 @@ class ProtectedEndpointSecurityMatrixIntegrationTest {
     @Test
     @WithMockUser(username = "admin@example.com", roles = "ADMIN")
     void ownershipGuardEndpoints_admin_returnOk() throws Exception {
-        CartItemDTO updated = new CartItemDTO();
-        updated.setId(10L);
+        CartItemDTO updated = new CartItemDTO(10L, null, 2, null);
         when(cartUseCase.updateCartDetail(10L, 2)).thenReturn(updated);
         mockMvc.perform(put("/api/carts/details/10").param("newQuantity", "2"))
                 .andExpect(status().isOk());
@@ -201,7 +207,7 @@ class ProtectedEndpointSecurityMatrixIntegrationTest {
                   "price": 1000.00,
                   "quantityAvailable": 2,
                   "categoryId": 1,
-                  "condition": "NEW"
+                  "condition": "EXCELLENT"
                 }
                 """;
     }

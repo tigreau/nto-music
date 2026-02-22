@@ -20,9 +20,7 @@ export function optionalString(value: unknown): string | null {
 
 export function asCondition(value: unknown, field: string): ProductCondition {
   switch (value) {
-    case 'NEW':
     case 'EXCELLENT':
-    case 'VERY_GOOD':
     case 'GOOD':
     case 'FAIR':
       return value;

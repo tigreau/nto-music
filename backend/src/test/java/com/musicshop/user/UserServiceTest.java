@@ -3,7 +3,10 @@ package com.musicshop.user;
 import com.musicshop.dto.user.UpdateUserRequest;
 import com.musicshop.dto.user.UserDTO;
 import com.musicshop.exception.ResourceNotFoundException;
+import com.musicshop.mapper.UserMapper;
 import com.musicshop.model.user.User;
+import com.musicshop.repository.address.AddressRepository;
+import com.musicshop.repository.user.UserAddressRepository;
 import com.musicshop.repository.user.UserRepository;
 import com.musicshop.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,13 +26,33 @@ public class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private UserAddressRepository userAddressRepository;
+    @Mock
+    private AddressRepository addressRepository;
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-
+        lenient().when(userMapper.toUserDTO(any(User.class), any())).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            return new UserDTO(
+                    user.getId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    user.getPhoneNumber(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        });
     }
 
     @Test
@@ -43,6 +66,7 @@ public class UserServiceTest {
         mockUser.setPhoneNumber("123456789");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(userAddressRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
 
         Optional<UserDTO> result = userService.getUser(userId);
 
@@ -81,6 +105,7 @@ public class UserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userAddressRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
 
         UserDTO updatedUser = userService.updateUser(userId, request);
 

@@ -13,6 +13,7 @@ import {
   writeStoredUser,
   clearStoredUser as clearStoredUserFromStorage,
 } from '@/lib/authStorage';
+import { toUnknownApiError } from '@/lib/apiError';
 
 type AuthResponseSchema = OperationResponse<'login'>;
 export interface AuthResponse extends AuthUser {
@@ -71,8 +72,15 @@ export async function verifySession(): Promise<AuthUser | null> {
     const user = mapAuthResponse(response);
     setStoredUser(user);
     return user;
-  } catch {
-    clearStoredUser();
-    return null;
+  } catch (error) {
+    const apiError = toUnknownApiError(error);
+
+    if (apiError.status === 401 || apiError.status === 403) {
+      clearStoredUser();
+      return null;
+    }
+
+    // Transient startup/proxy/network failures should not force logout.
+    return getStoredUser();
   }
 }

@@ -103,25 +103,25 @@ public class ProductSeeder implements DataSeeder {
                                         true);
                         createProduct("Gibson Les Paul Standard '50s",
                                         "Full PAF-inspired sound. Mahogany body, rosewood fretboard.",
-                                        new BigDecimal("2499.99"), 3, electricGuitar, gibson, ProductCondition.NEW,
+                                        new BigDecimal("2499.99"), 3, electricGuitar, gibson, ProductCondition.EXCELLENT,
                                         true);
                         createProduct("Ibanez RG550",
                                         "High-performance electric. Edge tremolo, fast wizard neck.",
                                         new BigDecimal("899.99"), 5, electricGuitar, ibanez,
-                                        ProductCondition.VERY_GOOD, false);
+                                        ProductCondition.GOOD, false);
                         createProduct("Fender Vintera '60s Telecaster",
                                         "Vintage-voiced single-coils. Classic Tele twang.",
                                         new BigDecimal("999.99"), 6, electricGuitar, fender, ProductCondition.GOOD,
                                         false);
                         createProduct("Epiphone SG Standard",
                                         "Classic SG tone at an accessible price. SlimTaper neck.",
-                                        new BigDecimal("449.99"), 10, electricGuitar, epiphone, ProductCondition.NEW,
+                                        new BigDecimal("449.99"), 10, electricGuitar, epiphone, ProductCondition.EXCELLENT,
                                         false);
 
                         // Acoustic Guitar (4)
                         createProduct("Martin LX1E Little Martin",
                                         "Portable acoustic-electric. Sitka spruce top, perfect for travel.",
-                                        new BigDecimal("449.99"), 10, acousticGuitar, martin, ProductCondition.NEW,
+                                        new BigDecimal("449.99"), 10, acousticGuitar, martin, ProductCondition.EXCELLENT,
                                         false);
                         createProduct("Taylor 214ce",
                                         "Grand auditorium acoustic-electric. Sitka spruce and rosewood.",
@@ -130,121 +130,121 @@ public class ProductSeeder implements DataSeeder {
                                         true);
                         createProduct("Yamaha FG800",
                                         "Solid spruce top dreadnought. Great for beginners and pros alike.",
-                                        new BigDecimal("229.99"), 15, acousticGuitar, yamaha, ProductCondition.NEW,
+                                        new BigDecimal("229.99"), 15, acousticGuitar, yamaha, ProductCondition.EXCELLENT,
                                         false);
                         createProduct("Gibson J-45 Standard",
                                         "The workhorse acoustic. Warm and full tone.",
-                                        new BigDecimal("2699.99"), 2, acousticGuitar, gibson, ProductCondition.NEW,
+                                        new BigDecimal("2699.99"), 2, acousticGuitar, gibson, ProductCondition.EXCELLENT,
                                         true);
 
                         // Bass Guitar (3)
                         createProduct("Fender Player Jazz Bass",
                                         "Versatile bass with two single-coil pickups. Modern C neck.",
-                                        new BigDecimal("849.99"), 6, bassGuitar, fender, ProductCondition.NEW, true);
+                                        new BigDecimal("849.99"), 6, bassGuitar, fender, ProductCondition.EXCELLENT, true);
                         createProduct("Ibanez SR300E",
                                         "Lightweight bass with PowerSpan dual-coil pickups.",
                                         new BigDecimal("399.99"), 8, bassGuitar, ibanez, ProductCondition.EXCELLENT,
                                         false);
                         createProduct("Yamaha TRBX304",
                                         "Active bass with solid mahogany body. Punchy tone.",
-                                        new BigDecimal("349.99"), 10, bassGuitar, yamaha, ProductCondition.NEW, false);
+                                        new BigDecimal("349.99"), 10, bassGuitar, yamaha, ProductCondition.EXCELLENT, false);
 
                         // Ukulele (2)
                         createProduct("Cordoba 15CM Concert Ukulele",
                                         "Mahogany concert uke. Warm, rich tone.",
-                                        new BigDecimal("69.99"), 20, ukulele, cordoba, ProductCondition.NEW, false);
+                                        new BigDecimal("69.99"), 20, ukulele, cordoba, ProductCondition.EXCELLENT, false);
                         createProduct("Fender Fullerton Strat Uke",
                                         "Strat-shaped concert ukulele. Built-in pickup.",
-                                        new BigDecimal("149.99"), 12, ukulele, fender, ProductCondition.NEW, true);
+                                        new BigDecimal("149.99"), 12, ukulele, fender, ProductCondition.EXCELLENT, true);
 
                         // Banjo (2)
                         createProduct("Deering Goodtime Two",
                                         "5-string resonator banjo. Bright, loud projection.",
-                                        new BigDecimal("799.99"), 4, banjo, deering, ProductCondition.NEW, true);
+                                        new BigDecimal("799.99"), 4, banjo, deering, ProductCondition.EXCELLENT, true);
                         createProduct("Ibanez B200",
                                         "5-string closed-back banjo. Great for beginners.",
-                                        new BigDecimal("299.99"), 7, banjo, ibanez, ProductCondition.NEW, false);
+                                        new BigDecimal("299.99"), 7, banjo, ibanez, ProductCondition.EXCELLENT, false);
 
                         // Mandolin (1)
                         createProduct("Ibanez M510 A-Style Mandolin",
                                         "Classic A-style mandolin. Spruce top, sapele back.",
-                                        new BigDecimal("249.99"), 6, mandolin, ibanez, ProductCondition.NEW, false);
+                                        new BigDecimal("249.99"), 6, mandolin, ibanez, ProductCondition.EXCELLENT, false);
 
                         // --- Drums & Percussion ---
                         // Drum Kit (5)
                         createProduct("Yamaha DTX402K Electronic Drum Kit",
                                         "Compact e-drum kit. 10 built-in training functions.",
-                                        new BigDecimal("449.99"), 6, drumKit, yamaha, ProductCondition.NEW, false);
+                                        new BigDecimal("449.99"), 6, drumKit, yamaha, ProductCondition.EXCELLENT, false);
                         createProduct("Roland TD-17KVX V-Drums",
                                         "Mesh-head digital drums. Bluetooth audio playback.",
-                                        new BigDecimal("1799.99"), 2, drumKit, roland, ProductCondition.VERY_GOOD,
+                                        new BigDecimal("1799.99"), 2, drumKit, roland, ProductCondition.GOOD,
                                         true);
                         createProduct("Alesis Nitro Mesh Kit",
                                         "8-piece all-mesh electronic drum kit. Great feel and response.",
-                                        new BigDecimal("379.99"), 20, drumKit, alesis, ProductCondition.NEW, true);
+                                        new BigDecimal("379.99"), 20, drumKit, alesis, ProductCondition.EXCELLENT, true);
                         createProduct("Pearl Roadshow 5-Piece",
                                         "Complete drum set with hardware and cymbals. Perfect for beginners.",
-                                        new BigDecimal("549.99"), 5, drumKit, pearl, ProductCondition.NEW, false);
+                                        new BigDecimal("549.99"), 5, drumKit, pearl, ProductCondition.EXCELLENT, false);
                         createProduct("Ludwig Breakbeats by Questlove",
                                         "Compact 4-piece kit. Great for tight spaces and gigging.",
-                                        new BigDecimal("499.99"), 3, drumKit, ludwig, ProductCondition.VERY_GOOD,
+                                        new BigDecimal("499.99"), 3, drumKit, ludwig, ProductCondition.GOOD,
                                         false);
 
                         // Cymbal (2)
                         createProduct("Meinl HCS Cymbal Set",
                                         "Complete cymbal pack: hi-hats, crash, ride.",
-                                        new BigDecimal("199.99"), 10, cymbal, meinl, ProductCondition.NEW, false);
+                                        new BigDecimal("199.99"), 10, cymbal, meinl, ProductCondition.EXCELLENT, false);
                         createProduct("Meinl Byzance Traditional Medium Ride 20\"",
                                         "Dark, warm ride cymbal. Hand-hammered B20 bronze.",
-                                        new BigDecimal("459.99"), 5, cymbal, meinl, ProductCondition.NEW, true);
+                                        new BigDecimal("459.99"), 5, cymbal, meinl, ProductCondition.EXCELLENT, true);
 
                         // Cajon (2)
                         createProduct("Meinl Headliner Series Cajon",
                                         "Baltic birch body. Dual internal snare wires.",
-                                        new BigDecimal("129.99"), 15, cajon, meinl, ProductCondition.NEW, false);
+                                        new BigDecimal("129.99"), 15, cajon, meinl, ProductCondition.EXCELLENT, false);
                         createProduct("Pearl Primero Box Cajon",
                                         "Compact travel cajon. Natural fiberglass front plate.",
-                                        new BigDecimal("89.99"), 20, cajon, pearl, ProductCondition.NEW, false);
+                                        new BigDecimal("89.99"), 20, cajon, pearl, ProductCondition.EXCELLENT, false);
 
                         // Drum Machine (2)
                         createProduct("Roland TR-8S Rhythm Performer",
                                         "Flagship drum machine. ACB modeling of classic Roland rhythm machines.",
-                                        new BigDecimal("599.99"), 4, drumMachine, roland, ProductCondition.NEW, true);
+                                        new BigDecimal("599.99"), 4, drumMachine, roland, ProductCondition.EXCELLENT, true);
                         createProduct("Alesis SR-16",
                                         "Classic drum machine. 233 realistic sounds.",
-                                        new BigDecimal("149.99"), 12, drumMachine, alesis, ProductCondition.NEW,
+                                        new BigDecimal("149.99"), 12, drumMachine, alesis, ProductCondition.EXCELLENT,
                                         false);
 
                         // Xylophone (1)
                         createProduct("Yamaha YX-230 Xylophone",
                                         "30-note xylophone. Mango wood bars, A=442Hz.",
-                                        new BigDecimal("1299.99"), 3, xylophone, yamaha, ProductCondition.NEW, false);
+                                        new BigDecimal("1299.99"), 3, xylophone, yamaha, ProductCondition.EXCELLENT, false);
 
                         // --- Keys & Synths ---
                         // Piano (5)
                         createProduct("Yamaha P-125 Digital Piano",
                                         "88-key weighted action. Pure CF sound engine.",
-                                        new BigDecimal("699.99"), 7, piano, yamaha, ProductCondition.NEW, true);
+                                        new BigDecimal("699.99"), 7, piano, yamaha, ProductCondition.EXCELLENT, true);
                         createProduct("Roland FP-30X",
                                         "88-key portable piano. Bluetooth MIDI, SuperNATURAL sound.",
                                         new BigDecimal("749.99"), 5, piano, roland, ProductCondition.EXCELLENT, false);
                         createProduct("Casio Privia PX-S1100",
                                         "Slim, smart digital piano. Illuminated touch sensor controls.",
-                                        new BigDecimal("679.99"), 12, piano, casio, ProductCondition.NEW, false);
+                                        new BigDecimal("679.99"), 12, piano, casio, ProductCondition.EXCELLENT, false);
                         createProduct("Nord Piano 5 88",
                                         "Premium stage piano. Virtual hammer and triple sensor keybed.",
-                                        new BigDecimal("3999.99"), 2, piano, nord, ProductCondition.NEW, true);
+                                        new BigDecimal("3999.99"), 2, piano, nord, ProductCondition.EXCELLENT, true);
                         createProduct("Yamaha CLP-745 Clavinova",
                                         "Console digital piano. CFX and Bösendorfer sampling.",
-                                        new BigDecimal("2499.99"), 3, piano, yamaha, ProductCondition.NEW, true);
+                                        new BigDecimal("2499.99"), 3, piano, yamaha, ProductCondition.EXCELLENT, true);
 
                         // Synthesizer (3)
                         createProduct("Korg Minilogue XD",
                                         "4-voice analog hybrid synthesizer. Digital multi-engine and effects.",
-                                        new BigDecimal("649.99"), 4, synthesizer, korg, ProductCondition.NEW, true);
+                                        new BigDecimal("649.99"), 4, synthesizer, korg, ProductCondition.EXCELLENT, true);
                         createProduct("Nord Stage 3 88",
                                         "88-key hammer action stage keyboard. Synth, organ, and piano sections.",
-                                        new BigDecimal("4499.99"), 2, synthesizer, nord, ProductCondition.NEW, true);
+                                        new BigDecimal("4499.99"), 2, synthesizer, nord, ProductCondition.EXCELLENT, true);
                         createProduct("Roland JUNO-DS61",
                                         "61-key lightweight synth. Great for live performance.",
                                         new BigDecimal("699.99"), 6, synthesizer, roland, ProductCondition.EXCELLENT,
@@ -253,108 +253,108 @@ public class ProductSeeder implements DataSeeder {
                         // Organ (1)
                         createProduct("Nord C2D Combo Organ",
                                         "Dual manual organ. Authentic B3, Vox, and Farfisa tones.",
-                                        new BigDecimal("3499.99"), 2, organ, nord, ProductCondition.NEW, true);
+                                        new BigDecimal("3499.99"), 2, organ, nord, ProductCondition.EXCELLENT, true);
 
                         // Accordion (2)
                         createProduct("Hohner Panther Diatonic Accordion",
                                         "Compact 31-button accordion. Matte black finish, G/C/F keys.",
-                                        new BigDecimal("599.99"), 3, accordion, hohner, ProductCondition.NEW, true);
+                                        new BigDecimal("599.99"), 3, accordion, hohner, ProductCondition.EXCELLENT, true);
                         createProduct("Roland FR-1x V-Accordion",
                                         "Compact digital accordion. Light and small with pro features.",
-                                        new BigDecimal("1499.99"), 2, accordion, roland, ProductCondition.NEW, false);
+                                        new BigDecimal("1499.99"), 2, accordion, roland, ProductCondition.EXCELLENT, false);
 
                         // Sampler (1)
                         createProduct("Roland SP-404MKII",
                                         "Creative sampler and effector. 16 velocity-sensitive pads.",
-                                        new BigDecimal("449.99"), 8, sampler, roland, ProductCondition.NEW, true);
+                                        new BigDecimal("449.99"), 8, sampler, roland, ProductCondition.EXCELLENT, true);
 
                         // --- Wind & Brass ---
                         // Saxophone (3)
                         createProduct("Yamaha YAS-280 Alto Saxophone",
                                         "Student alto sax. Gold lacquer finish, excellent intonation.",
-                                        new BigDecimal("1099.99"), 5, saxophone, yamaha, ProductCondition.NEW, true);
+                                        new BigDecimal("1099.99"), 5, saxophone, yamaha, ProductCondition.EXCELLENT, true);
                         createProduct("Conn-Selmer AS711 Prelude Alto Saxophone",
                                         "Beginner-friendly alto. Rose brass construction.",
-                                        new BigDecimal("899.99"), 6, saxophone, connSelmer, ProductCondition.NEW,
+                                        new BigDecimal("899.99"), 6, saxophone, connSelmer, ProductCondition.EXCELLENT,
                                         false);
                         createProduct("Jupiter JTS700A Tenor Saxophone",
                                         "Intermediate tenor sax. Warm, centered tone.",
-                                        new BigDecimal("1599.99"), 3, saxophone, jupiter, ProductCondition.NEW, true);
+                                        new BigDecimal("1599.99"), 3, saxophone, jupiter, ProductCondition.EXCELLENT, true);
 
                         // Trumpet (3)
                         createProduct("Yamaha YTR-2330 Trumpet",
                                         "Standard Bb trumpet. Two-piece bell design.",
-                                        new BigDecimal("649.99"), 8, trumpet, yamaha, ProductCondition.NEW, false);
+                                        new BigDecimal("649.99"), 8, trumpet, yamaha, ProductCondition.EXCELLENT, false);
                         createProduct("Jupiter JTR700A Trumpet",
                                         "Intermediate Bb trumpet. Rose brass leadpipe.",
-                                        new BigDecimal("799.99"), 5, trumpet, jupiter, ProductCondition.NEW, true);
+                                        new BigDecimal("799.99"), 5, trumpet, jupiter, ProductCondition.EXCELLENT, true);
                         createProduct("Conn-Selmer 1BR Bb Trumpet",
                                         "Professional-level trumpet. Bright, projecting tone.",
-                                        new BigDecimal("1899.99"), 2, trumpet, connSelmer, ProductCondition.NEW, true);
+                                        new BigDecimal("1899.99"), 2, trumpet, connSelmer, ProductCondition.EXCELLENT, true);
 
                         // Flute (2)
                         createProduct("Gemeinhardt 2SP Student Flute",
                                         "Silver-plated student flute. Offset G, closed hole.",
-                                        new BigDecimal("549.99"), 10, flute, gemeinhardt, ProductCondition.NEW, false);
+                                        new BigDecimal("549.99"), 10, flute, gemeinhardt, ProductCondition.EXCELLENT, false);
                         createProduct("Yamaha YFL-222 Student Flute",
                                         "Nickel silver body. CY headjoint for easy response.",
-                                        new BigDecimal("699.99"), 7, flute, yamaha, ProductCondition.NEW, true);
+                                        new BigDecimal("699.99"), 7, flute, yamaha, ProductCondition.EXCELLENT, true);
 
                         // Harmonica (2)
                         createProduct("Hohner Special 20 Harmonica",
                                         "Professional harmonica. Durable plastic comb, great response.",
-                                        new BigDecimal("49.99"), 100, harmonica, hohner, ProductCondition.NEW, false);
+                                        new BigDecimal("49.99"), 100, harmonica, hohner, ProductCondition.EXCELLENT, false);
                         createProduct("Hohner Marine Band 1896",
                                         "Classic diatonic harmonica. Pearwood comb, hand-tuned reeds.",
-                                        new BigDecimal("59.99"), 50, harmonica, hohner, ProductCondition.NEW, true);
+                                        new BigDecimal("59.99"), 50, harmonica, hohner, ProductCondition.EXCELLENT, true);
 
                         // Bagpipe (1)
                         createProduct("McCallum Highland Bagpipe Set",
                                         "Full highland bagpipe in African blackwood. Nickel mounts.",
-                                        new BigDecimal("1899.99"), 2, bagpipe, null, ProductCondition.NEW, true);
+                                        new BigDecimal("1899.99"), 2, bagpipe, null, ProductCondition.EXCELLENT, true);
 
                         // Kazoo (1)
                         createProduct("Hohner Kazoo Classic",
                                         "Simple yet fun metal kazoo. Silver-plated.",
-                                        new BigDecimal("5.99"), 200, kazoo, hohner, ProductCondition.NEW, false);
+                                        new BigDecimal("5.99"), 200, kazoo, hohner, ProductCondition.EXCELLENT, false);
 
                         // --- Bowed Strings ---
                         // Violin (3)
                         createProduct("Stentor Student I Violin Outfit",
                                         "High quality student violin. Hand carved from solid tonewoods.",
-                                        new BigDecimal("179.99"), 15, violin, stentor, ProductCondition.NEW, false);
+                                        new BigDecimal("179.99"), 15, violin, stentor, ProductCondition.EXCELLENT, false);
                         createProduct("Yamaha V3 Series Advanced Student Violin",
                                         "Advanced student violin. Oil varnish shading.",
                                         new BigDecimal("645.00"), 5, violin, yamaha, ProductCondition.EXCELLENT, true);
                         createProduct("Eastman VL200 Violin Outfit",
                                         "Step-up violin. Fully carved spruce and maple.",
-                                        new BigDecimal("799.99"), 4, violin, eastman, ProductCondition.NEW, true);
+                                        new BigDecimal("799.99"), 4, violin, eastman, ProductCondition.EXCELLENT, true);
 
                         // Viola (2)
                         createProduct("Stentor Student I Viola Outfit",
                                         "Affordable student viola. Solid spruce top.",
-                                        new BigDecimal("229.99"), 8, viola, stentor, ProductCondition.NEW, false);
+                                        new BigDecimal("229.99"), 8, viola, stentor, ProductCondition.EXCELLENT, false);
                         createProduct("Eastman VA80ST Viola",
                                         "Step-up viola. Aged European spruce top.",
-                                        new BigDecimal("599.99"), 4, viola, eastman, ProductCondition.NEW, true);
+                                        new BigDecimal("599.99"), 4, viola, eastman, ProductCondition.EXCELLENT, true);
 
                         // Cello (2)
                         createProduct("Stentor Student I Cello Outfit",
                                         "Entry-level cello. Hand carved solid spruce top.",
-                                        new BigDecimal("499.99"), 5, cello, stentor, ProductCondition.NEW, false);
+                                        new BigDecimal("499.99"), 5, cello, stentor, ProductCondition.EXCELLENT, false);
                         createProduct("Eastman VC100 Cello Outfit",
                                         "Step-up cello. Rich, warm tone. Solid carved construction.",
-                                        new BigDecimal("1199.99"), 3, cello, eastman, ProductCondition.NEW, true);
+                                        new BigDecimal("1199.99"), 3, cello, eastman, ProductCondition.EXCELLENT, true);
 
                         // Double Bass (1)
                         createProduct("Stentor Student I Double Bass 3/4",
                                         "Student double bass. Laminated spruce top.",
-                                        new BigDecimal("999.99"), 3, doubleBass, stentor, ProductCondition.NEW, false);
+                                        new BigDecimal("999.99"), 3, doubleBass, stentor, ProductCondition.EXCELLENT, false);
 
                         // Electric Violin (1)
                         createProduct("Yamaha YEV104 Electric Violin",
                                         "4-string electric violin. Stunning skeletal design.",
-                                        new BigDecimal("599.99"), 6, electricViolin, yamaha, ProductCondition.NEW,
+                                        new BigDecimal("599.99"), 6, electricViolin, yamaha, ProductCondition.EXCELLENT,
                                         true);
                 }
 

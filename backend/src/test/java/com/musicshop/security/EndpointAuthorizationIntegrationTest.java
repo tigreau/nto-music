@@ -7,6 +7,7 @@ import com.musicshop.controller.user.UserController;
 import com.musicshop.dto.cart.CartItemDTO;
 import com.musicshop.dto.user.UserDTO;
 import com.musicshop.exception.GlobalExceptionHandler;
+import com.musicshop.infrastructure.notification.NotificationSseBroker;
 import com.musicshop.model.cart.Cart;
 import com.musicshop.model.cart.CartDetail;
 import com.musicshop.model.user.Notification;
@@ -64,6 +65,9 @@ class EndpointAuthorizationIntegrationTest {
     private NotificationUseCase notificationUseCase;
 
     @MockBean
+    private NotificationSseBroker notificationSseBroker;
+
+    @MockBean
     private UserRepository userRepository;
 
     @MockBean
@@ -87,7 +91,9 @@ class EndpointAuthorizationIntegrationTest {
     void userEndpoint_allowsSelf() throws Exception {
         User owner = userWithEmail("self@example.com");
         when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
-        when(userUseCase.getUser(1L)).thenReturn(Optional.of(new UserDTO(1L, "Self", "User", "self@example.com", "123")));
+        when(userUseCase.getUser(1L)).thenReturn(Optional.of(
+                new UserDTO(1L, "Self", "User", "self@example.com", "123",
+                        "Main Street", "42A", "10001", "Amsterdam", "Netherlands")));
 
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk());
@@ -106,7 +112,9 @@ class EndpointAuthorizationIntegrationTest {
     @Test
     @WithMockUser(username = "admin@example.com", roles = "ADMIN")
     void userEndpoint_allowsAdmin() throws Exception {
-        when(userUseCase.getUser(1L)).thenReturn(Optional.of(new UserDTO(1L, "Admin", "User", "admin@example.com", "123")));
+        when(userUseCase.getUser(1L)).thenReturn(Optional.of(
+                new UserDTO(1L, "Admin", "User", "admin@example.com", "123",
+                        "Admin Avenue", "1", "10100", "Rotterdam", "Netherlands")));
 
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk());
@@ -116,8 +124,7 @@ class EndpointAuthorizationIntegrationTest {
     @WithMockUser(username = "self@example.com", roles = "USER")
     void cartDetailEndpoint_allowsOwner() throws Exception {
         when(cartDetailRepository.findById(10L)).thenReturn(Optional.of(cartDetailFor("self@example.com")));
-        CartItemDTO cartItemDTO = new CartItemDTO();
-        cartItemDTO.setId(10L);
+        CartItemDTO cartItemDTO = new CartItemDTO(10L, null, 2, null);
         when(cartUseCase.updateCartDetail(10L, 2)).thenReturn(cartItemDTO);
 
         mockMvc.perform(put("/api/carts/details/10").param("newQuantity", "2"))
@@ -136,8 +143,7 @@ class EndpointAuthorizationIntegrationTest {
     @Test
     @WithMockUser(username = "admin@example.com", roles = "ADMIN")
     void cartDetailEndpoint_allowsAdmin() throws Exception {
-        CartItemDTO cartItemDTO = new CartItemDTO();
-        cartItemDTO.setId(10L);
+        CartItemDTO cartItemDTO = new CartItemDTO(10L, null, 2, null);
         when(cartUseCase.updateCartDetail(10L, 2)).thenReturn(cartItemDTO);
 
         mockMvc.perform(put("/api/carts/details/10").param("newQuantity", "2"))

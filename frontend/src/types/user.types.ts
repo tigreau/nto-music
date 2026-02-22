@@ -3,6 +3,11 @@ export interface UserProfile {
   lastName: string;
   email: string;
   phoneNumber: string;
+  street: string;
+  number: string;
+  postalCode: string;
+  city: string;
+  country: string;
 }
 
 export interface AuthUser {

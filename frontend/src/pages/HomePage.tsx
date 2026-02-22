@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCart } from "@/context/CartContext";
 import { Hero } from '@/components/Hero';
 import { FilterSidebar } from '@/components/FilterSidebar';
@@ -20,6 +20,7 @@ interface HomePageProps {
 const HomePage = ({ isAdmin }: HomePageProps) => {
     const [searchParams] = useSearchParams();
     const categorySlug = searchParams.get('category') || undefined;
+    const searchQuery = searchParams.get('q') || undefined;
 
     // Filter state
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -32,6 +33,8 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
 
     // Modal state
     const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+    const productsSectionRef = useRef<HTMLDivElement | null>(null);
+    const previousSearchQueryRef = useRef<string | undefined>(searchQuery);
     const { refreshCart } = useCart();
     const addToCartMutation = useAddToCart();
     const runWithFeedback = useMutationFeedback();
@@ -51,6 +54,7 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
         error,
         refetch,
     } = useProducts({
+        q: searchQuery,
         category: effectiveCategorySlug,
         brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
@@ -73,6 +77,28 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
     useEffect(() => {
         setSelectedSubcategory(undefined);
     }, [categorySlug]);
+
+    useEffect(() => {
+        setPage(0);
+    }, [searchQuery, categorySlug, selectedSubcategory, selectedBrands, selectedConditions, minPrice, maxPrice, sort]);
+
+    useEffect(() => {
+        const previousSearch = previousSearchQueryRef.current;
+        previousSearchQueryRef.current = searchQuery;
+
+        const hasNewSearch = Boolean(searchQuery) && searchQuery !== previousSearch;
+        if (!hasNewSearch || !productsSectionRef.current) {
+            return;
+        }
+
+        const headerOffset = 84;
+        const top =
+            productsSectionRef.current.getBoundingClientRect().top + window.scrollY - headerOffset;
+
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        });
+    }, [searchQuery]);
 
     const handleProductClick = (product: Product) => {
         setSelectedProductId(product.id);
@@ -120,7 +146,7 @@ const HomePage = ({ isAdmin }: HomePageProps) => {
                         selectedSubcategory={selectedSubcategory}
                         onSubcategoryChange={setSelectedSubcategory}
                     />
-                    <div className="shop-main">
+                    <div className="shop-main" ref={productsSectionRef}>
                         <div className="shop-results-info">
                             {productsPage && (
                                 <span>{productsPage.totalElements} product{productsPage.totalElements !== 1 ? 's' : ''}</span>

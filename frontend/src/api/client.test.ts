@@ -30,7 +30,7 @@ describe('api client', () => {
     expect(localStorage.getItem('user')).toContain('user@example.com');
   });
 
-  it('clears session when verifySession fails', async () => {
+  it('clears session when verifySession returns unauthorized', async () => {
     localStorage.setItem('user', JSON.stringify({ userId: 1, email: 'stale@example.com', role: 'USER' }));
     server.use(http.get('/api/auth/me', () => HttpResponse.json({ code: 'UNAUTHORIZED' }, { status: 401 })));
 
@@ -38,6 +38,19 @@ describe('api client', () => {
 
     expect(result).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  it('keeps stored session on transient gateway failure', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ userId: 9, email: 'cached@example.com', firstName: 'Cached', role: 'USER' }),
+    );
+    server.use(http.get('/api/auth/me', () => HttpResponse.json({ code: 'INTERNAL_ERROR' }, { status: 502 })));
+
+    const result = await verifySession();
+
+    expect(result?.email).toBe('cached@example.com');
+    expect(localStorage.getItem('user')).toContain('cached@example.com');
   });
 
   it('sends expected query parameters for product listing', async () => {

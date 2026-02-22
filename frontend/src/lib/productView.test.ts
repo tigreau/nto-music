@@ -26,7 +26,7 @@ const products: Product[] = [
     price: 20,
     categoryName: 'Drums',
     brandName: null,
-    condition: 'NEW',
+    condition: 'EXCELLENT',
     thumbnailUrl: null,
     isPromoted: false,
   },

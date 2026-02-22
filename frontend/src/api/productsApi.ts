@@ -15,6 +15,7 @@ import type { AdminProduct, DetailedProduct, PageResponse, Product, ProductFilte
 export function fetchProducts(filters: ProductFilters = {}): Promise<PageResponse<Product>> {
   const params = new URLSearchParams();
   const query: OperationQuery<'listProducts'> = {
+    q: filters.q,
     category: filters.category,
     brand: filters.brand,
     minPrice: filters.minPrice,
@@ -25,6 +26,7 @@ export function fetchProducts(filters: ProductFilters = {}): Promise<PageRespons
     size: filters.size ?? 20,
   };
 
+  if (query.q) params.set('q', query.q);
   if (query.category) params.set('category', query.category);
   if (query.brand) params.set('brand', query.brand);
   if (query.minPrice !== undefined) params.set('minPrice', String(query.minPrice));

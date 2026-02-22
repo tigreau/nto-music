@@ -2,6 +2,7 @@ package com.musicshop.service.review;
 
 import com.musicshop.dto.review.CategoryReviewsDTO;
 
+import com.musicshop.exception.ResourceNotFoundException;
 import com.musicshop.mapper.ReviewMapper;
 import com.musicshop.model.category.Category;
 import com.musicshop.model.product.Review;
@@ -35,7 +36,7 @@ public class ReviewService {
 
     public CategoryReviewsDTO getReviewsByCategory(String categorySlug, int page, int size) {
         Category category = categoryRepository.findBySlug(categorySlug)
-                .orElseThrow(() -> new RuntimeException("Category not found: " + categorySlug));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + categorySlug));
 
         // Collect IDs: current category + all unique subcategory IDs
         List<Long> categoryIds = new ArrayList<>();

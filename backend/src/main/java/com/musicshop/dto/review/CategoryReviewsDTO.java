@@ -2,18 +2,14 @@ package com.musicshop.dto.review;
 
 import java.util.List;
 
-public class CategoryReviewsDTO {
-    private String categoryName;
-    private Double averageRating;
-    private long reviewCount;
-    private List<ReviewDTO> reviews;
+public record CategoryReviewsDTO(
+        String categoryName,
+        Double averageRating,
+        long reviewCount,
+        List<ReviewDTO> reviews) {
 
-    public CategoryReviewsDTO(String categoryName, Double averageRating,
-            long reviewCount, List<ReviewDTO> reviews) {
-        this.categoryName = categoryName;
-        this.averageRating = averageRating;
-        this.reviewCount = reviewCount;
-        this.reviews = reviews;
+    public CategoryReviewsDTO {
+        reviews = (reviews == null) ? List.of() : List.copyOf(reviews);
     }
 
     public String getCategoryName() {

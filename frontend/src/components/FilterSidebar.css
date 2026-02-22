@@ -1,5 +1,6 @@
 .filter-sidebar {
     width: 260px;
+    min-width: 260px;
     padding: 1.5rem;
     background-color: #eee8d5;
     /* base2 */
@@ -233,4 +234,34 @@
 .clear-filter-btn:hover {
     color: #dc322f;
     /* red */
+}
+
+/* Keep responsive overrides after base rules so they always win. */
+@media (max-width: 1100px) {
+    .filter-sidebar {
+        width: 100%;
+        min-width: 0;
+        position: static;
+        top: auto;
+        padding: 1rem;
+    }
+
+    .filter-section {
+        margin-bottom: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .filter-sidebar {
+        border-radius: 0.375rem;
+    }
+
+    .filter-title {
+        font-size: 0.7rem;
+        margin-bottom: 0.625rem;
+    }
+
+    .filter-checkbox {
+        font-size: 0.875rem;
+    }
 }

@@ -1,8 +1,6 @@
 package com.musicshop.application.cart;
 
 import com.musicshop.dto.cart.CartItemDTO;
-import com.musicshop.model.cart.Cart;
-import com.musicshop.model.user.User;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.musicshop.service.cart.CartService;
 import com.musicshop.service.user.UserService;
@@ -23,21 +21,20 @@ public class CartUseCase {
 
     @PreAuthorize("isAuthenticated()")
     public void addProduct(String email, Long productId, int quantity) {
-        User user = userService.findByEmail(email);
-        cartService.addProductToCart(user.getId(), productId, quantity);
+        Long userId = userService.findUserIdByEmail(email);
+        cartService.addProductToCart(userId, productId, quantity);
     }
 
     @PreAuthorize("isAuthenticated()")
     public List<CartItemDTO> listCartDetails(String email) {
-        User user = userService.findByEmail(email);
-        Cart cart = cartService.getCartForUser(user);
-        return cartService.listCartItemDTOs(cart.getId());
+        Long userId = userService.findUserIdByEmail(email);
+        return cartService.listCartItemDTOsForUser(userId);
     }
 
     @PreAuthorize("isAuthenticated()")
     public void clearCart(String email) {
-        User user = userService.findByEmail(email);
-        cartService.clearCartForUser(user);
+        Long userId = userService.findUserIdByEmail(email);
+        cartService.clearCartForUserId(userId);
     }
 
     public CartItemDTO updateCartDetail(Long detailId, int newQuantity) {

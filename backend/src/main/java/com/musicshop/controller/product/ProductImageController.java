@@ -1,8 +1,10 @@
 package com.musicshop.controller.product;
 
 import com.musicshop.application.product.ProductImageUseCase;
+import com.musicshop.dto.product.ImageUploadCommand;
 import com.musicshop.dto.product.ProductImageDTO;
 import com.musicshop.dto.product.ReorderImagesRequest;
+import com.musicshop.mapper.ProductImageUploadMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +19,12 @@ import javax.validation.Valid;
 public class ProductImageController {
 
     private final ProductImageUseCase productImageUseCase;
+    private final ProductImageUploadMapper productImageUploadMapper;
 
-    public ProductImageController(ProductImageUseCase productImageUseCase) {
+    public ProductImageController(ProductImageUseCase productImageUseCase,
+                                  ProductImageUploadMapper productImageUploadMapper) {
         this.productImageUseCase = productImageUseCase;
+        this.productImageUploadMapper = productImageUploadMapper;
     }
 
     @PostMapping
@@ -29,7 +34,8 @@ public class ProductImageController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String altText,
             @RequestParam(defaultValue = "false") boolean isPrimary) {
-        return ResponseEntity.ok(productImageUseCase.uploadImage(productId, file, altText, isPrimary));
+        ImageUploadCommand command = productImageUploadMapper.toCommand(file, altText, isPrimary);
+        return ResponseEntity.ok(productImageUseCase.uploadImage(productId, command));
     }
 
     @DeleteMapping("/{imageId}")

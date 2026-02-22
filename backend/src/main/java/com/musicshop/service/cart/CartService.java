@@ -141,4 +141,15 @@ public class CartService {
             clearCart(cart.getId());
         }
     }
+
+    @Transactional(readOnly = true)
+    public List<CartItemDTO> listCartItemDTOsForUser(Long userId) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+        return listCartItemDTOs(cart.getId());
+    }
+
+    public void clearCartForUserId(Long userId) {
+        cartRepository.findByUserId(userId).ifPresent(cart -> clearCart(cart.getId()));
+    }
 }

@@ -427,6 +427,11 @@ export interface components {
             lastName: string;
             email: string;
             phoneNumber?: string;
+            street?: string;
+            number?: string;
+            postalCode?: string;
+            city?: string;
+            country?: string;
         };
         UserDTO: {
             /** Format: int64 */
@@ -435,6 +440,11 @@ export interface components {
             lastName?: string;
             email?: string;
             phoneNumber?: string;
+            street?: string;
+            number?: string;
+            postalCode?: string;
+            city?: string;
+            country?: string;
         };
         ReorderImagesRequest: {
             imageIds: number[];
@@ -448,7 +458,7 @@ export interface components {
             /** Format: int64 */
             categoryId: number;
             /** @enum {string} */
-            condition: "NEW" | "EXCELLENT" | "VERY_GOOD" | "GOOD" | "FAIR";
+            condition: "EXCELLENT" | "GOOD" | "FAIR";
             conditionNotes?: string;
         };
         DetailedProductDTO: {
@@ -463,7 +473,7 @@ export interface components {
             categoryName?: string;
             brandName?: string;
             /** @enum {string} */
-            condition?: "NEW" | "EXCELLENT" | "VERY_GOOD" | "GOOD" | "FAIR";
+            condition?: "EXCELLENT" | "GOOD" | "FAIR";
             conditionNotes?: string;
             images?: components["schemas"]["ProductImageDTO"][];
             isPromoted?: boolean;
@@ -562,23 +572,23 @@ export interface components {
             /** Format: int64 */
             categoryId?: number;
             /** @enum {string} */
-            condition?: "NEW" | "EXCELLENT" | "VERY_GOOD" | "GOOD" | "FAIR";
+            condition?: "EXCELLENT" | "GOOD" | "FAIR";
             conditionNotes?: string;
         };
         PageSimpleProductDTO: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["SimpleProductDTO"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             numberOfElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
             first?: boolean;
             last?: boolean;
             empty?: boolean;
@@ -587,12 +597,12 @@ export interface components {
             /** Format: int64 */
             offset?: number;
             sort?: components["schemas"]["SortObject"];
+            paged?: boolean;
+            unpaged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
             /** Format: int32 */
             pageSize?: number;
-            paged?: boolean;
-            unpaged?: boolean;
         };
         SimpleProductDTO: {
             /** Format: int64 */
@@ -603,15 +613,15 @@ export interface components {
             categoryName?: string;
             brandName?: string;
             /** @enum {string} */
-            condition?: "NEW" | "EXCELLENT" | "VERY_GOOD" | "GOOD" | "FAIR";
+            condition?: "EXCELLENT" | "GOOD" | "FAIR";
             thumbnailUrl?: string;
             images?: components["schemas"]["ProductImageDTO"][];
             isPromoted?: boolean;
         };
         SortObject: {
             empty?: boolean;
-            sorted?: boolean;
             unsorted?: boolean;
+            sorted?: boolean;
         };
         NotificationDTO: {
             /** Format: int64 */
@@ -870,6 +880,7 @@ export interface operations {
     listProducts: {
         parameters: {
             query?: {
+                q?: string;
                 category?: string;
                 brand?: string;
                 minPrice?: number;
